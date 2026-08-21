@@ -1734,7 +1734,47 @@ syncPageSizeFromUI();
             else if (formattedVal.includes("T")) formattedVal = formattedVal.split("T")[0];
           }
 
-          cellsHtml += `<td>${escapeHtml(formattedVal)}</td>`;
+          // Check for corresponding _FileMetadata field
+          const metadataKey = f.internalName + "_FileMetadata";
+          const metadataRaw = row[metadataKey];
+          let cellHtml = "";
+
+          if (metadataRaw) {
+            // Parse metadata safely
+            let attachments = [];
+            try {
+              const parsed = typeof metadataRaw === "string" ? JSON.parse(metadataRaw) : metadataRaw;
+              if (Array.isArray(parsed)) {
+                attachments = parsed.filter(a => a && typeof a === "object" && a.link);
+              }
+            } catch (e) {
+              // Invalid JSON - treat as no metadata
+              attachments = [];
+            }
+
+            if (attachments.length > 0) {
+              // Render each attachment as a clickable link
+              const linksHtml = attachments.map((att, idx) => {
+                const link = att.link || "";
+                const displayName = att.displayName || (idx === 0 ? formattedVal : `Attachment ${idx + 1}`);
+                // Use QuickAppFlow attachment download endpoint for relative paths,
+                // or use absolute URLs directly
+                const fileUrl = link.startsWith("http")
+                  ? link
+                  : `Attachment/downloadfile?fileUrl=${encodeURIComponent(link)}`;
+                const safeDisplayName = escapeHtml(displayName);
+                const safeFileUrl = escapeHtml(fileUrl);
+                return `<a href="${safeFileUrl}" target="_blank" rel="noopener noreferrer" class="attachment-link" onclick="event.stopPropagation();" title="${safeDisplayName}">${safeDisplayName}</a>`;
+              }).join("<br>");
+              cellHtml = linksHtml;
+            }
+          }
+
+          if (!cellHtml) {
+            cellHtml = escapeHtml(formattedVal);
+          }
+
+          cellsHtml += `<td>${cellHtml}</td>`;
         });
 
         tr.innerHTML = cellsHtml;
