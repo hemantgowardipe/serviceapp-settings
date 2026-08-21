@@ -144,6 +144,7 @@
   let appState = {
     objectName: params.objectName || null,  // null = no repo selected; NO hardcoded fallback
     wfId: params.wfId || null,              // for workflow iframe tab only
+    objectId: null,                         // resolved from WfId via WFConfigByID API
     schemaFields: [],
     records: [],           // Current page records only (not full dataset)
     filteredRecords: [],   // Same as records for backend pagination
@@ -178,12 +179,100 @@
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }
 
-  function refreshParamsFromURL() {
+function refreshParamsFromURL() {
     const updated = getURLParameters();
+    const prevWfId = appState.wfId;
     // ObjectName & wfId are synchronized authoritatively from the URL
     appState.objectName = updated.objectName || null;
     appState.wfId = updated.wfId || null;
     CONFIG.WF_ID = updated.wfId || null;
+    // Invalidate objectId if wfId changed, so it gets re-resolved
+    if (prevWfId !== appState.wfId) {
+      appState.objectId = null;
+    }
+    // Update tab links when URL parameters change
+    updateTabLinks();
+  }
+
+  /**
+   * Get current tab from URL search params.
+   * Returns 'repository' or 'workflow'.
+   */
+  function getCurrentTabFromURL() {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tab = searchParams.get('tab');
+    return tab === 'workflow' ? 'workflow' : 'repository';
+  }
+
+  /**
+   * Update tab link hrefs to include tab parameter.
+   * Called on initialization and when ObjectName/WfId change.
+   */
+  function updateTabLinks() {
+    const repoLink = document.getElementById('linkRepositorySetting');
+    const wfLink = document.getElementById('linkWorkflowSetting');
+    if (!repoLink || !wfLink) return;
+
+    const url = new URL(window.location.href);
+    
+    // Repository Setting link - omit tab parameter (default)
+    const repoUrl = new URL(url);
+    repoUrl.searchParams.delete('tab');
+    repoLink.href = repoUrl.toString();
+    
+    // Workflow Setting link - add tab=workflow
+    const wfUrl = new URL(url);
+    wfUrl.searchParams.set('tab', 'workflow');
+    wfLink.href = wfUrl.toString();
+    
+    console.log('[Workflow Navigation] Repository link href:', repoLink.href);
+    console.log('[Workflow Navigation] Workflow link href:', wfLink.href);
+  }
+
+  /**
+   * Apply tab state to UI without triggering navigation.
+   * Used for initial load and popstate.
+   */
+  function applyTabState(tabName) {
+    const repoLink = document.getElementById('linkRepositorySetting');
+    const wfLink = document.getElementById('linkWorkflowSetting');
+    const repoView = document.getElementById('repositoryView');
+    const wfView = document.getElementById('workflowView');
+    const wfIframe = document.getElementById('workflowIframe');
+    const pageHeader = document.getElementById('pageHeader');
+
+    if (tabName === 'workflow') {
+      if (repoLink) repoLink.classList.remove('active');
+      if (wfLink) wfLink.classList.add('active');
+      if (pageHeader) pageHeader.style.display = 'none';
+      if (repoView) repoView.style.display = 'none';
+      if (wfView) wfView.style.display = 'block';
+
+      // Resolve ObjectID and load iframe
+      ensureWorkflowObjectId().then(objectId => {
+        if (wfIframe && objectId) {
+          const baseUrl = getWorkflowBaseUrl();
+          const targetUrl = `${baseUrl}/workflow-engine/${encodeURIComponent(objectId)}`;
+          console.log('[Workflow Navigation] Iframe URL:', targetUrl);
+          if (wfIframe.src !== targetUrl) {
+            wfIframe.src = targetUrl;
+          }
+          wfIframe.onload = hideInnerSubnavButtons;
+        } else if (!objectId) {
+          console.error('[Workflow] Cannot load workflow page: ObjectID not resolved');
+          const container = document.querySelector('.workflow-iframe-container');
+          if (container) {
+            container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#c0392b;padding:24px;text-align:center;"><i class="fa fa-exclamation-triangle" style="font-size:2.5rem;margin-bottom:12px;display:block;"></i><strong>Unable to load Workflow Settings</strong><p style="margin-top:6px;font-size:13px;color:#888;">Workflow ObjectID could not be resolved from WfId.</p></div>`;
+          }
+        }
+      });
+    } else {
+      if (wfLink) wfLink.classList.remove('active');
+      if (repoLink) repoLink.classList.add('active');
+      if (pageHeader) pageHeader.style.display = 'block';
+      if (wfView) wfView.style.display = 'none';
+      if (repoView) repoView.style.display = 'block';
+    }
   }
 
   // â”€â”€â”€ INITIALIZATION & NAVIGATION GUARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -275,6 +364,16 @@
     }
 
     refreshParamsFromURL();
+    
+    // Check if workflow tab is active in URL
+    const currentTab = getCurrentTabFromURL();
+    if (currentTab === 'workflow') {
+      console.log('[Repository Activation] Workflow tab active, skipping repository view enforcement');
+      // Still update tab links but don't force repository view
+      updateTabLinks();
+      return;
+    }
+
     const objectName = appState.objectName;
     const activationKey = getRepositoryActivationKey();
 
@@ -417,8 +516,18 @@
 
     navigationStateIsResolving = false;
 
-    // 3. Delegate directly to single-flight activateRepository()
-    return activateRepository();
+    // 3. Check tab state from URL and apply if needed
+    const currentTab = getCurrentTabFromURL();
+    console.log('[Workflow Navigation] Current tab from URL:', currentTab);
+    applyTabState(currentTab);
+    updateTabLinks();
+
+    // 4. Delegate to activateRepository only for repository tab
+    if (currentTab === 'repository') {
+      return activateRepository();
+    }
+    
+    return Promise.resolve();
   }
 
   function _bootstrapApp() {
@@ -476,7 +585,7 @@
     };
   }
 
-  // Parent SPA message event listener (if embedded in an iframe or parent shell)
+// Parent SPA message event listener (if embedded in an iframe or parent shell)
   window.addEventListener("message", (event) => {
     if (!event || !event.data) return;
     let data = event.data;
@@ -494,6 +603,7 @@
       if (wfId && wfId !== appState.wfId) {
         appState.wfId = wfId;
         CONFIG.WF_ID = wfId;
+        appState.objectId = null; // Invalidate objectId so it gets re-resolved
         changed = true;
       }
       if (changed) {
@@ -568,10 +678,24 @@
       "EmployeeGUID": empGuid,
       "Hrzemail": email,
       "HrzempId": empId
-    };
   }
+}
 
-  async function fetchWithRetry(url, options = {}, maxRetries = 3, delayMs = 400) {
+/**
+ * Get the QuickAppFlow base URL from localStorage.
+ * This is set by setupLocalStorageCredentials() using the 'env' key.
+ * Falls back to window.location.origin if not set.
+ */
+function getWorkflowBaseUrl() {
+  const envUrl = localStorage.getItem("env");
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, ""); // Remove trailing slash if present
+  }
+  // Fallback to current page origin
+  return (window.location && window.location.origin) ? window.location.origin : "";
+}
+
+async function fetchWithRetry(url, options = {}, maxRetries = 3, delayMs = 400) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -594,11 +718,53 @@
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
       }
-    }
+  return null;
+  }
+}
+
+/**
+ * Resolve workflow ObjectID from WfId using WFConfigByID API.
+ * This is used ONLY for the Workflow Setting tab iframe.
+ * Does NOT affect repository loading which uses ObjectName exclusively.
+ */
+async function resolveWorkflowObjectId(wfId) {
+  if (!wfId) {
+    console.log("[Workflow] No WfId provided, cannot resolve ObjectID");
     return null;
   }
 
-  function getCurrentUserName() {
+  const url = `https://ndem.quickappflow.com/api/WFConfigByID?wfid=${encodeURIComponent(wfId)}`;
+  console.log("[Workflow] Resolving ObjectID via WFConfigByID:", url);
+
+  try {
+    const data = await fetchWithRetry(url, {
+      method: "GET",
+      headers: getAuthHeaders(),
+      cache: "no-store"
+    }, 3, 400);
+
+    if (!data) {
+      console.error("[Workflow] WFConfigByID returned no data");
+      return null;
+    }
+
+    // Extract ObjectID robustly - support different casing variations
+    const objectId = data.ObjectID || data.objectID || data.ObjectId || data.objectId || null;
+    
+    if (objectId) {
+      console.log("[Workflow] Resolved ObjectID:", objectId);
+      return objectId;
+    } else {
+      console.error("[Workflow] ObjectID not found in WFConfigByID response:", data);
+      return null;
+    }
+  } catch (err) {
+    console.error("[Workflow] Failed to resolve ObjectID from WfId:", err);
+    return null;
+  }
+}
+
+function getCurrentUserName() {
     try {
       const raw = localStorage.getItem("user_key");
       if (raw) {
@@ -637,60 +803,117 @@
     await ALWAYS_FETCH_GET_RECORDS_API();
   }
 
-  // fetchWFConfig and fetchViewID removed â€” repository selection is now done exclusively
+// fetchWFConfig and fetchViewID removed â€” repository selection is now done exclusively
   // via ObjectName â†’ Serviceapp_Report. WFConfigByID and ViewGet are no longer used for data loading.
 
-  function hideInnerSubnavButtons() {
+  /**
+   * Ensure workflow ObjectID is resolved from wfId.
+   * Called when Workflow Setting tab is activated.
+   * Caches result in appState.objectId to avoid redundant API calls.
+   */
+async function ensureWorkflowObjectId() {
+  if (appState.objectId) {
+    // Already resolved
+    console.log('[Workflow Navigation] Resolved ObjectID (cached):', appState.objectId);
+    return appState.objectId;
+  }
+  if (!appState.wfId) {
+    console.log('[Workflow Navigation] No WfId available to resolve ObjectID');
+    return null;
+  }
+  console.log('[Workflow Navigation] WfId:', appState.wfId);
+  const objectId = await resolveWorkflowObjectId(appState.wfId);
+  if (objectId) {
+    appState.objectId = objectId;
+    console.log('[Workflow Navigation] Resolved ObjectID:', objectId);
+  } else {
+    console.error('[Workflow Navigation] Failed to resolve ObjectID from WfId');
+  }
+  return objectId;
+}
+
+function hideInnerSubnavButtons() {
     const iframe = document.getElementById("workflowIframe");
     if (!iframe) return;
     try {
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       if (doc && doc !== document) {
-        const elementsToHide = doc.querySelectorAll('.settings-subnav, header, .app-header, .qaf-header, .subnav-links');
-        elementsToHide.forEach(el => {
-          if (el) el.style.display = 'none';
+        // Hide ONLY the top navigation: "Home | Workflow List | Workflow Design"
+        // These are typically in a header/nav with class 'settings-subnav' or similar top-level navigation
+        // Preserve: Detail | Workflow Stages | Permission | Notifications | Finish (workflow sub-tabs)
+        const topNavSelectors = [
+          '.settings-subnav',           // Our own subnav class if reused
+          '.app-header',                // QuickAppFlow app header
+          '.qaf-header',                // QuickAppFlow header
+          'header.qaf-header',          // Specific header
+          'nav.settings-subnav',        // Nav with settings-subnav
+          '.workflow-top-nav',          // Potential workflow top nav
+          '.breadcrumb',                // Breadcrumb if present
+          '.page-breadcrumb'            // Page breadcrumb
+        ];
+        
+        topNavSelectors.forEach(selector => {
+          const elements = doc.querySelectorAll(selector);
+          elements.forEach(el => {
+            // Only hide if it contains "Home" or "Workflow List" or "Workflow Design" text
+            // This avoids hiding the workflow sub-tabs (Detail, Workflow Stages, etc.)
+            const text = (el.textContent || '').toLowerCase();
+            if (text.includes('home') || text.includes('workflow list') || text.includes('workflow design')) {
+              el.style.display = 'none';
+            }
+          });
+        });
+        
+        // Also try to find and hide any header/nav that contains the specific top-level links
+        const allHeaders = doc.querySelectorAll('header, nav, .header, .nav');
+        allHeaders.forEach(el => {
+          const text = (el.textContent || '').toLowerCase();
+          if ((text.includes('home') || text.includes('workflow list') || text.includes('workflow design')) &&
+              !text.includes('detail') && !text.includes('workflow stages') &&
+              !text.includes('permission') && !text.includes('notifications') && !text.includes('finish')) {
+            el.style.display = 'none';
+          }
         });
       }
-    } catch (e) { }
+    } catch (e) {
+      // Cross-origin: cannot access iframe DOM, silently continue
+      // The CSS approach in main.css will handle visual clipping if needed
+    }
   }
 
-  function switchTab(tabName, event) {
+function switchTab(tabName, event) {
     if (event) {
       event.preventDefault();
     }
 
-    const repoLink = document.getElementById("linkRepositorySetting");
-    const wfLink = document.getElementById("linkWorkflowSetting");
-    const repoView = document.getElementById("repositoryView");
-    const wfView = document.getElementById("workflowView");
-    const wfIframe = document.getElementById("workflowIframe");
-    const pageHeader = document.getElementById("pageHeader");
+    console.log('[Workflow Navigation] switchTab called:', tabName);
+    console.log('[Workflow Navigation] Current URL:', window.location.href);
+    console.log('[Workflow Navigation] WfId:', appState.wfId);
 
-    const targetWfId = appState.wfId || appState.objectId;
-
-    if (tabName === "workflow") {
-      if (repoLink) repoLink.classList.remove("active");
-      if (wfLink) wfLink.classList.add("active");
-
-      if (pageHeader) pageHeader.style.display = "none";
-      if (repoView) repoView.style.display = "none";
-      if (wfView) wfView.style.display = "block";
-
-      if (wfIframe && targetWfId) {
-        const targetUrl = `https://training.quickappflow.com/workflow-engine/${targetWfId}`;
-        if (wfIframe.src !== targetUrl) {
-          wfIframe.src = targetUrl;
-        }
-        wfIframe.onload = hideInnerSubnavButtons;
-      }
+    // Update browser URL with tab parameter using pushState
+    const url = new URL(window.location.href);
+    if (tabName === 'workflow') {
+      url.searchParams.set('tab', 'workflow');
     } else {
-      if (wfLink) wfLink.classList.remove("active");
-      if (repoLink) repoLink.classList.add("active");
+      url.searchParams.delete('tab');
+    }
+    
+    window.history.pushState(
+      { tab: tabName, ...window.history.state },
+      '',
+      url.toString()
+    );
+    
+    console.log('[Workflow Navigation] Parent URL updated:', url.toString());
+    
+    // Update tab link hrefs
+    updateTabLinks();
+    
+    // Apply tab state to UI
+    applyTabState(tabName);
 
-      if (pageHeader) pageHeader.style.display = "block";
-      if (wfView) wfView.style.display = "none";
-      if (repoView) repoView.style.display = "block";
-
+    // If switching to repository, trigger repository activation
+    if (tabName === 'repository') {
       lastActivatedRepositoryKey = null;
       activateRepository();
     }
@@ -1918,7 +2141,8 @@ syncPageSizeFromUI();
   function openEditWorkflow() {
     const targetId = appState.objectId || appState.wfId;
     if (!targetId) return;
-    const workflowUrl = `https://training.quickappflow.com/workflow-engine/${targetId}`;
+    const baseUrl = getWorkflowBaseUrl();
+    const workflowUrl = `${baseUrl}/workflow-engine/${targetId}`;
     console.log("[LWR] Opening Edit Workflow URL:", workflowUrl);
     window.open(workflowUrl, '_blank');
   }

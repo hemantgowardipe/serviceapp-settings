@@ -1388,7 +1388,7 @@ body.is-column-resizing * {
   margin-top: 6px;
 }
 
-/* Workflow View Container - Dynamic Height & Duplicate Header Clipping */
+/* Workflow View Container - Full height, no clipping */
 .workflow-iframe-container {
   position: relative;
   width: 100%;
@@ -1398,17 +1398,20 @@ body.is-column-resizing * {
   background: #ffffff;
   border: 1px solid #e0e0e0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .workflow-iframe-container iframe {
-  position: absolute;
-  top: -148px;
-  /* Completely clips out inner header bar, inner breadcrumbs and inner Repository Setting / Workflow Setting buttons */
+  position: relative;
+  top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% + 148px);
+  height: 100%;
+  flex: 1;
   border: none;
   background: #ffffff;
+  display: block;
 }
 
 /* ============================================================
