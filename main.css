@@ -1404,10 +1404,15 @@ body.is-column-resizing * {
 
 .workflow-iframe-container iframe {
   position: relative;
-  top: 0;
+  /* Negative offset to crop ONLY the embedded QuickAppFlow header and
+     "Home | Workflow List | Workflow Design" navigation row.
+     The offset is calibrated to hide the unwanted top shell (approx 80px)
+     while KEEPING the Detail/Workflow Stages/Permission/Notifications/Finish tabs visible. */
+  top: -80px;
   left: 0;
   width: 100%;
-  height: 100%;
+  /* Increase height to compensate for negative offset so bottom content isn't cut */
+  height: calc(100% + 80px);
   flex: 1;
   border: none;
   background: #ffffff;
