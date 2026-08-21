@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LWR Request</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="global.css">
+  <link rel="stylesheet"
+    href="https://appai.quickappflow.com/Attachment/downloadfile?fileUrl=Pages1%2Fmain_d78431a8-9ae7-446a-a3b1-5334b7e710b3.css">
+  <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+
+  <!-- Main Content Container -->
+  <main class="app-container">
+
+    <!-- Sub-navigation links -->
+    <div class="settings-subnav">
+      <a href="javascript:void(0);" class="subnav-link active" id="linkRepositorySetting"
+        onclick="switchTab('repository', event)">Repository Setting</a>
+      <a href="javascript:void(0);" class="subnav-link" id="linkWorkflowSetting"
+        onclick="switchTab('workflow', event)">Workflow Setting</a>
+    </div>
+
+    <!-- Page Header Title (Updated dynamically from ObjectGet API) -->
+    <div class="page-header" id="pageHeader">
+      <h1 class="page-title" id="pageTitle">Service Request</h1>
+    </div>
+
+    <!-- Repository Setting View -->
+    <div id="repositoryView" class="tab-view active">
+      <!-- Toolbar Actions -->
+      <div class="toolbar-container">
+        <div class="toolbar-search">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" class="toolbar-search-input" id="toolbarSearchInput" aria-label="Search records"
+            placeholder="" oninput="handleSearch(this.value)">
+        </div>
+        <div class="toolbar-actions">
+          <button class="action-btn btn-grey" id="btnPlusRecord" onclick="openNewRecordDrawer()">+ Record</button>
+          <button class="action-btn btn-outline" id="btnExportRepository" onclick="exportRepositoryData()"
+            title="Export Repository" aria-label="Export Repository"><i class="fa fa-download"
+              aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <!-- Data Table Card -->
+      <div class="grid-card subcategory-tab-panel">
+        <div class="table-responsive table-wrap">
+          <table class="qaf-table subcategory-table" id="recordsTable" data-resize-key="service_request">
+            <colgroup id="tableColGroup"></colgroup>
+            <thead id="tableHeaderRow">
+              <!-- Dynamic header columns will be rendered here -->
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamic rows will be rendered here -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer (Matches Screenshot Exactly) -->
+        <div class="table-footer">
+          <div class="footer-right">
+            <div class="page-size-selector">
+              <label for="pageSizeSelect" class="page-size-label">Items per page:</label>
+              <select id="pageSizeSelect" class="page-size-dropdown" onchange="changePageSize(this.value)">
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            <span id="pageIndicator" class="pagination-range">1 - 10 of 37</span>
+            <div class="pagination-controls">
+              <button class="page-nav-btn" id="prevPageBtn" aria-label="Previous page" onclick="prevPage()"><i
+                  class="fa-solid fa-chevron-left"></i></button>
+              <button class="page-nav-btn" id="nextPageBtn" aria-label="Next page" onclick="nextPage()"><i
+                  class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflow Setting View (embedded within same page) -->
+    <div id="workflowView" class="tab-view" style="display: none;">
+      <div class="workflow-iframe-container">
+        <iframe id="workflowIframe" src="" title="Workflow Setting"
+          style="width: 100%; height: calc(100vh - 200px); min-height: 650px; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff;"></iframe>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Slide-Over Record Form Drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <aside class="drawer-panel" id="drawerPanel">
+
+    <!-- Drawer Header Bar -->
+    <div class="drawer-header">
+      <span class="drawer-title">Record Form</span>
+      <button type="button" class="drawer-close-btn" onclick="closeDrawer()" title="Close"><i
+          class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Drawer Form Body -->
+    <div class="drawer-body">
+      <h2 class="section-title" id="sectionTitle">Record Details</h2>
+
+      <form id="recordForm" onsubmit="event.preventDefault(); saveCurrentRecord();">
+        <!-- Hidden Record ID -->
+        <input type="hidden" id="field_recordID">
+
+        <!-- Dynamic Form Fields Container -->
+        <div id="dynamicFormContainer"></div>
+
+        <!-- Created By -->
+        <div class="form-group" style="margin-top: 15px;">
+          <label for="field_CreatedBy">Created By</label>
+          <input type="text" id="field_CreatedBy" class="form-control" placeholder="Created By"
+            value="Hemant Gowardipe">
+        </div>
+      </form>
+    </div>
+
+    <!-- Drawer Footer Bar with Save & Cancel buttons at bottom -->
+    <div class="drawer-footer">
+      <button type="button" class="btn-drawer-save" onclick="saveCurrentRecord()">Save</button>
+      <button type="button" class="btn-drawer-cancel" onclick="closeDrawer()">Cancel</button>
+    </div>
+  </aside>
+
+  <!-- Import Bulk Data Modal -->
+  <div class="import-modal-backdrop" id="importModalBackdrop" onclick="closeImportBulkModal()"></div>
+  <div class="import-modal" id="importModal">
+    <div class="import-modal-header">
+      <span class="import-modal-title">Import bulk data</span>
+      <button class="import-modal-close" onclick="closeImportBulkModal()" title="Close"><i
+          class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="import-modal-body">
+      <p class="import-modal-desc">Download Repository template for uploading bulk data</p>
+      <a href="#" class="import-modal-download" onclick="downloadImportTemplate(event)">Download Template</a>
+      <div class="import-upload-area">
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" aria-label="Upload bulk data file"
+          style="display:none" onchange="handleImportFile(this)">
+        <button class="import-upload-btn" onclick="document.getElementById('importFileInput').click()">Upload bulk
+          data</button>
+      </div>
+      <div id="importStatusArea" class="import-status-area" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Include bundle.js & main.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script
+    src="https://appai.quickappflow.com/Attachment/downloadfile?fileUrl=Pages1%2Fbundel_ad089218-2d6a-413c-b56a-2dfc1d1f8b1d.js"></script>
+  <script src="library.js"></script>
+  <script src="main.js"></script>
+</body>
+
+</html>

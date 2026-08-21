@@ -1,0 +1,1844 @@
+/*
+ * SECTION: CSS Custom Properties and Design Tokens
+ * This section defines the design system tokens used by all reusable styles.
+ * Update these variables to theme the full app without touching component rules.
+ */
+:root {
+  --font-family-base: "Poppins", "DM Sans", "Segoe UI", Arial, sans-serif;
+  
+  --color-bg-canvas: #FAFAFA;
+  --color-bg-surface: #ffffff;
+  --color-bg-subtle: #f8fafc;
+  --color-bg-muted: #f3f4f6;
+  --color-bg-overlay: rgba(15, 23, 42, 0.28);
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+  --color-link: #0ea5e9;
+
+  --color-border-default: #e5e7eb;
+  --color-border-strong: #c8ccd4;
+  --color-border-nav: #9b97979e;
+
+  --color-primary: #2563eb;
+  --color-primary-soft: #eaf0ff;
+  --color-accent-dark: #0f172a;
+
+  --color-success-bg: #ecfdf3;
+  --color-success-text: #166534;
+  --color-success-border: #4ade80;
+  --color-warning-bg: #fff8e6;
+  --color-warning-text: #92400e;
+  --color-warning-border: #eab308;
+  --color-danger-bg: #fff1f2;
+  --color-danger-text: #9f1239;
+  --color-danger-border: #fb7185;
+  --color-info-bg: #ecfeff;
+  --color-info-text: #155e75;
+  --color-info-border: #0891b2;
+  --color-neutral-badge-bg: #f1f5f9;
+  --color-neutral-badge-text: #334155;
+  --color-neutral-badge-border: #64748b;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 20px;
+  --font-size-display: 34px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+
+  --shadow-none: none;
+  --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.12);
+  --shadow-md: 0 20px 40px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 30px 50px rgba(15, 23, 42, 0.2);
+
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 10px;
+  --space-8: 20px;
+  --space-9: 24px;
+  --space-10: 28px;
+  --space-11: 32px;
+
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-nav: 350ms;
+  --ease-standard: ease;
+
+  --z-navdock: 10;
+  /* QAF nav dock widths (keep in sync with body padding-left rules below). */
+  --qaf-navdock-width-collapsed: 40px;
+  --qaf-navdock-width-expanded: 250px;
+  --z-sticky: 2;
+  --z-menu: 1000;
+  --z-modal-overlay: 9999;
+  --z-modal: 10000;
+
+  --breakpoint-sm: 768px;
+  --breakpoint-lg: 1280px;
+
+  --portal-topbar-offset: 0px;
+}
+
+/*
+ * SECTION: CSS Reset and Base Styles
+ * Base browser normalization and global element defaults.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-bg-canvas);
+}
+
+html,
+body {
+  margin: var(--space-0);
+  min-height: 100%;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  padding-left: var(--qaf-navdock-width-collapsed);
+  transition: padding-left var(--duration-nav) var(--ease-standard);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/*
+ * SECTION: Typography and Heading Styles
+ * Reusable heading, subtitle, and helper text styles.
+ */
+h1,
+.page-title {
+  margin: var(--space-0);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: -0.02em;
+}
+
+h2,
+.section-title {
+  margin: var(--space-0);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.section-title--display {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-regular);
+}
+
+.text-muted,
+.table-panel__meta,
+.as-status,
+.load-more-hint,
+.footer-note,
+.empty-note {
+  color: var(--color-text-muted);
+}
+
+/*
+ * SECTION: Layout and Section Wrappers
+ * Shared wrappers for pages, panels, grids, and content sections.
+ */
+.page-shell,
+.as-page,
+.page,
+.req-page,
+.inventory-page,
+.settings-page,
+.asset-serial-page,
+.permission-page,
+.app {
+  width: 100%;
+  margin: var(--space-0);
+  padding: var(--space-7);
+  background: var(--color-bg-canvas);
+  min-height: calc(100vh - var(--portal-topbar-offset));
+}
+
+/* Short list pages: shell fills the viewport; table card grows so spare height stays on the white panel. */
+.req-page:has(> .table-panel.card),
+.page-shell:has(> .table-panel.card) {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.req-page:has(> .table-panel.card) > .panel.table-panel.card,
+.page-shell:has(> .table-panel.card) > .panel.table-panel.card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel,
+.table-panel,
+.settings-content-card,
+.asset-card,
+.as-card,
+.chart-card,
+.table-block,
+.detail-section {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-none);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.table-wrap,
+.asset-table-wrap,
+.settings-table-wrap,
+.allocation-table-wrap,
+.history-log-table-wrap,
+.other-detail-table-wrap,
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+/*
+ * SECTION: Navigation and Header Bar Styles
+ * Shared top/header rows and QAF nav dock behavior.
+ */
+.qaf-navdock .fa,
+.qaf-navdock .fa::before,
+.back-btn .fa,
+.back-btn .fa::before {
+  font-family: FontAwesome !important;
+}
+
+/* QAF nav dock: flex column avoids clipped/overlapping items when portal topbar height changes. */
+.qaf-navdock,
+aside.qaf-navdock {
+  position: fixed;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: auto !important;
+  width: var(--qaf-navdock-width-collapsed);
+  max-width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #FAFAFA;
+  border-right: 1px solid var(--color-border-nav);
+  overflow: hidden;
+  padding-top: 84px;
+  z-index: var(--z-navdock); /* Keeps nav above page content but below modal layers. */
+  transition: width var(--duration-nav) var(--ease-standard);
+}
+
+/* Keep dock pinned to viewport even when portal wrappers apply transforms/margins. */
+body > .qaf-navdock {
+  margin: 0 !important;
+  transform: none !important;
+  background: #FAFAFA;
+}
+
+.qaf-navdock:hover,
+body.qaf-navdock-expanded .qaf-navdock,
+body.qaf-navdock-expanded aside.qaf-navdock {
+  width: var(--qaf-navdock-width-expanded);
+}
+
+body.qaf-navdock-expanded {
+  padding-left: var(--qaf-navdock-width-expanded);
+}
+
+.qaf-navdock-layout-shift {
+  margin-left: var(--space-0);
+  min-width: 0;
+}
+
+.qaf-navdock__arrow-indicator {
+  position: absolute;
+  top: 51px;
+  right: 2px;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: none;
+}
+
+.qaf-navdock__arrow-indicator::before,
+.qaf-navdock__arrow-indicator::after {
+  content: none;
+}
+
+.qaf-navdock__arrow-indicator i {
+  font-size: 26px !important;
+  line-height: 1;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.qaf-navdock__arrow-indicator:hover {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.qaf-navdock__arrow-indicator:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.qaf-navdock__arrow-indicator:active {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+body.qaf-navdock-expanded .qaf-navdock__arrow-indicator i {
+  transform: rotate(180deg);
+}
+
+.qaf-navdock__list {
+  min-height: auto;
+  height: calc(100vh - 88px);
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.qaf-navdock__item {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.qaf-navdock__link {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.qaf-navdock__link.is-active {
+  background: var(--color-primary-soft);
+}
+
+.qaf-navdock__icon {
+  width: 20px;
+  min-width: 20px;
+  text-align: center;
+  font-size: 18px !important;
+  line-height: 1;
+  color: var(--color-text-primary);
+  display: inline-block;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+.qaf-navdock__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--color-text-primary);
+  /* Match asset-details / assetrequisition nav dock labels (14px). */
+  font-size: 14px;
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+}
+
+body.qaf-navdock-expanded .qaf-navdock__label,
+body:not(.qaf-navdock-expanded) .qaf-navdock:hover .qaf-navdock__label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.inventory-header,
+.req-page-header,
+.asset-serial-header,
+.settings-tabs-header,
+.permission-tabs-header,
+.table-panel__top,
+.table-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.table-panel__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+  min-width: 0;
+}
+
+/*
+ * SECTION: Button Styles and Variants
+ * Shared action controls for all page-level buttons.
+ */
+
+/* .btn,
+.as-btn,
+.settings-action-btn,
+.add-user-btn,
+.permission-modal__btn,
+.permission-modal__next-btn,
+.table-pagination__btn,
+.back-btn,
+.asset-tab,
+.settings-tab,
+.permission-tab,
+.page-switch__btn {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  cursor: pointer;
+} */
+
+.btn--dark,
+.btn--primary,
+.as-btn-primary,
+.settings-action-btn--primary,
+.permission-modal__btn--save,
+.add-user-btn,
+.permission-modal__next-btn {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  color: var(--color-text-inverse);
+}
+
+.btn--icon,
+.toolbar__icon-btn {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:disabled,
+.as-btn:disabled,
+.permission-modal__next-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/*
+ * SECTION: Card Component Styles
+ * Reusable card containers and card internals.
+ */
+.card,
+.asset-card,
+.as-card,
+.permission-modal__card,
+.settings-content-card,
+.chart-card {
+  padding: var(--space-6);
+}
+
+.card-title,
+.asset-card__title,
+.as-card-title,
+.chart-card__title,
+.status-cards__title {
+  margin: var(--space-0);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden; /* Required so card grid borders clip cleanly to rounded corners. */
+}
+
+.status-card {
+  border-right: 1px solid var(--color-border-default);
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-surface);
+}
+
+/*
+ * SECTION: Table Styles
+ * Shared table, sort, sticky header, and row-action menu styling.
+ */
+table,
+.asset-table,
+.settings-table,
+.allocation-table,
+.history-log-table,
+.other-detail-table,
+.permission-table,
+.as-detail-table {
+  width: max(100%, max-content);
+  min-width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-surface);
+  table-layout: auto;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-4) var(--space-4);
+  text-align: left;
+  font-size: var(--font-size-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: middle;
+  min-width: 120px;
+  line-height: 1.35;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky); /* Keeps table header above body rows during scroll. */
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.th-sort-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+th.is-sortable {
+  position: relative;
+  padding-right: 24px;
+}
+
+th:hover .th-sort-icon,
+th:focus-within .th-sort-icon,
+th.is-sorted .th-sort-icon {
+  opacity: 1;
+}
+
+/*
+ * Column-resize separator ("pipe") for the sortable/resizable grid tables on
+ * Service Dashboard and Team Dashboard. Both build their own table markup,
+ * but the resizer hit-zone and its hover-reveal-all behavior are identical,
+ * so they're declared once here via the shared classes.
+ */
+.servdash-table thead th .gt-col-resizer,
+.hmt-ticket-table thead th .gt-col-resizer {
+  width: 10px;
+  right: -5px;
+  top: 0;
+  height: 100%;
+  z-index: 2;
+  pointer-events: auto;
+  cursor: col-resize;
+}
+
+/* The resizer hit-zone above remains fully interactive for dragging; its "|"
+   visual affordance is kept in the DOM for compatibility but is never
+   displayed (opacity stays 0 in every state), so no visible line appears -
+   not even on hover. */
+.servdash-table thead th .gt-col-resizer::before,
+.hmt-ticket-table thead th .gt-col-resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 5px;
+  left: auto;
+  width: 2px;
+  height: auto;
+  transform: none;
+  border-radius: 0;
+  background: var(--color-text-muted, #808c9f);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+/* The actual visible separator is .gt-col-resizer::after (styled by
+   library.js's shared gt-runtime-styles). Revealing it for every column on
+   thead:hover, instead of only the one directly under the cursor, using the
+   app's lighter default border tone rather than library.js's own (stronger)
+   hover color. */
+.servdash-table thead:hover th .gt-col-resizer::after,
+.hmt-ticket-table thead:hover th .gt-col-resizer::after {
+  background: var(--color-border-default, #e5e7eb);
+}
+
+/*
+ * Sort-arrow glyph (up/down/either) for the sortable grid headers - shared
+ * between Service Dashboard and Team Dashboard's tables.
+ */
+.servdash-table thead th .gt-sort-icon,
+.servdash-table thead th .th-sort-icon,
+.hmt-ticket-table thead th .gt-sort-icon,
+.hmt-ticket-table thead th .th-sort-icon {
+  font-size: 0;
+  line-height: 1;
+  width: 10px;
+  height: 12px;
+  display: inline-block;
+  pointer-events: none;
+}
+
+.servdash-table thead th .gt-sort-icon::before,
+.servdash-table thead th .th-sort-icon::before,
+.hmt-ticket-table thead th .gt-sort-icon::before,
+.hmt-ticket-table thead th .th-sort-icon::before {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.servdash-table thead th[aria-sort="none"] .gt-sort-icon::before,
+.servdash-table thead th[aria-sort="none"] .th-sort-icon::before,
+.servdash-table thead th:not([aria-sort="ascending"]):not([aria-sort="descending"]) .gt-sort-icon::before,
+.servdash-table thead th:not([aria-sort="descending"]):not([aria-sort="ascending"]) .th-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="none"] .gt-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="none"] .th-sort-icon::before,
+.hmt-ticket-table thead th:not([aria-sort="ascending"]):not([aria-sort="descending"]) .gt-sort-icon::before,
+.hmt-ticket-table thead th:not([aria-sort="descending"]):not([aria-sort="ascending"]) .th-sort-icon::before {
+  content: "\2195";
+}
+
+.servdash-table thead th[aria-sort="ascending"] .gt-sort-icon::before,
+.servdash-table thead th[aria-sort="ascending"] .th-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="ascending"] .gt-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="ascending"] .th-sort-icon::before {
+  content: "\2191";
+}
+
+.servdash-table thead th[aria-sort="descending"] .gt-sort-icon::before,
+.servdash-table thead th[aria-sort="descending"] .th-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="descending"] .gt-sort-icon::before,
+.hmt-ticket-table thead th[aria-sort="descending"] .th-sort-icon::before {
+  content: "\2193";
+}
+
+.row-actions {
+  position: relative;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  padding: 0;
+  text-align: center;
+  overflow: visible;
+}
+
+.row-actions-head {
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  padding: 0;
+  text-align: center;
+}
+
+.row-actions__toggle {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Keep requisition table row height content-driven.
+ * This overrides page-level fallback min-heights.
+ */
+#reqTable tbody td {
+  min-height: 0 !important;
+}
+
+.row-actions__toggle .fa {
+  font-size: var(--font-size-lg);
+}
+
+.row-actions__menu,
+.more-menu {
+  position: fixed;
+  min-width: 126px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  z-index: var(--z-menu); /* Keeps popovers above sticky headers and table content. */
+  padding: var(--space-1) 0;
+}
+
+.row-actions__item {
+  width: 100%;
+  border: 0;
+  background: var(--color-bg-surface);
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.row-actions__item:hover,
+.row-actions__item:focus-visible {
+  background: var(--color-bg-subtle);
+}
+
+/*
+ * SECTION: Form and Input Styles
+ * Shared field, label, select, and form grid behavior.
+ */
+label,
+.meta-label,
+.summary-key {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+input,
+select,
+textarea,
+.as-search-input,
+.as-filter-select,
+.inline-cell-input,
+.permission-form-field input,
+.permission-form-field select {
+  width: 100%;
+  /* min-height: 34px; */
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.permission-form-grid,
+.permission-access-grid,
+.controls,
+.as-filter-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+/*
+ * SECTION: App Picker (autocomplete)
+ * Shared type-to-filter text input + floating option list, sized to match the
+ * toolbar's Status/Type triggers (30px, 12px font, #d1d5db border, 5px radius)
+ * so it sits flush with them. Defined once here so every consumer renders an
+ * identical control:
+ *   - the "New" workflow-request autocomplete (.qaf-app-picker__*) on Service
+ *     Dashboard and Team Dashboard;
+ *   - the "Assigned To"/"Priority"/"Status"/"Requester" autocompletes in Team
+ *     Dashboard's filter modal (.hmt-filter-select-input +
+ *     .hmt-filter-select-panel + .as-filter-select-option), which are the same
+ *     control with page-specific class names.
+ * The filter modal keeps only what is genuinely its own in
+ * helpdesk-my-ticket.css (the wrap's positioning and its rotating arrow).
+ */
+.qaf-app-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  min-width: 0;
+  height: 100%;
+}
+
+.qaf-app-picker__input,
+.hmt-filter-modal .hmt-filter-select-input {
+  display: block;
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  margin: 0;
+  padding: 0 10px;
+  padding-right: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #111827;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.25;
+  box-sizing: border-box;
+  box-shadow: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.qaf-app-picker__input::placeholder,
+.hmt-filter-modal .hmt-filter-select-input::placeholder {
+  color: #64748b;
+  font-weight: 300;
+  opacity: 1;
+}
+
+.qaf-app-picker__input:hover,
+.qaf-app-picker__input:focus,
+.qaf-app-picker__input:focus-visible,
+.hmt-filter-modal .hmt-filter-select-wrap.is-open .hmt-filter-select-input,
+.hmt-filter-modal .hmt-filter-select-input:hover,
+.hmt-filter-modal .hmt-filter-select-input:focus,
+.hmt-filter-modal .hmt-filter-select-input:focus-visible {
+  border-color: #9ca3af;
+  outline: none;
+}
+
+/* Reads as clickable until the user commits to typing, then switches to the
+   standard text-entry cursor. */
+.qaf-app-picker__input:focus,
+.qaf-app-picker__input:focus-visible,
+.hmt-filter-modal .hmt-filter-select-input:focus,
+.hmt-filter-modal .hmt-filter-select-input:focus-visible {
+  cursor: text;
+}
+
+/*
+ * Shared down-arrow glyph: the single source for how every dropdown/
+ * autocomplete arrow looks (icon, size, color) across Service Dashboard and
+ * Team Dashboard - "New", Status, Type and the filter modal's dropdowns all
+ * apply this class so they stay visually identical. Always pair it with
+ * <i class="fa fa-angle-down"> rather than drawing a chevron from borders,
+ * which renders at a different weight and size.
+ * Positioning is left to each host component, since that depends on its own
+ * layout: use the .qaf-arrow-icon--overlay modifier below for an absolute
+ * overlay on a bare <input>, or place it as a normal flex child inside a
+ * <button> trigger.
+ */
+.qaf-arrow-icon {
+  font-size: 14px;
+  line-height: 1;
+  color: #6b7280;
+  pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+/*
+ * Overlay placement for the arrow glyph on input-based dropdowns, where the
+ * input owns the field box and the arrow floats over its right-hand padding.
+ * Reusable anywhere: put .qaf-arrow-icon--overlay alongside .qaf-arrow-icon on
+ * the <i>, inside a position:relative wrapper, as a sibling that follows the
+ * combobox input. It then flips automatically whenever that input is
+ * aria-expanded="true" - no per-page arrow rule needed.
+ */
+.qaf-app-picker__arrow,
+.qaf-arrow-icon--overlay {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  flex: 0 0 auto;
+}
+
+.qaf-app-picker__input[aria-expanded="true"] ~ .qaf-app-picker__arrow,
+[aria-expanded="true"] ~ .qaf-arrow-icon--overlay {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.qaf-app-picker__list,
+.hmt-filter-modal .hmt-filter-select-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 800;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  max-height: 202px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.qaf-app-picker__list:hover,
+.hmt-filter-modal .hmt-filter-select-panel:hover,
+.hmt-filter-modal .hmt-filter-select-wrap.is-open:hover .hmt-filter-select-panel {
+  scrollbar-color: #b8b8b8 transparent;
+}
+
+.qaf-app-picker__list::-webkit-scrollbar,
+.hmt-filter-modal .hmt-filter-select-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.qaf-app-picker__list::-webkit-scrollbar-track,
+.hmt-filter-modal .hmt-filter-select-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.qaf-app-picker__list::-webkit-scrollbar-thumb,
+.hmt-filter-modal .hmt-filter-select-panel::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+}
+
+.qaf-app-picker__list:hover::-webkit-scrollbar-thumb,
+.hmt-filter-modal .hmt-filter-select-panel:hover::-webkit-scrollbar-thumb,
+.hmt-filter-modal .hmt-filter-select-wrap.is-open:hover .hmt-filter-select-panel::-webkit-scrollbar-thumb {
+  background-color: #b8b8b8;
+}
+
+.qaf-app-picker__list[hidden],
+.hmt-filter-modal .hmt-filter-select-panel[hidden] {
+  display: none;
+}
+
+/* Portaled state (list moved to <body> by QafLibrary.Dropdown.createPortal so
+   no ancestor overflow/stacking context can clip it) - same look, fixed
+   position instead of absolute. */
+.qaf-app-picker__list.qaf-dd-menu--portal {
+  position: fixed;
+  top: auto;
+  left: auto;
+  right: auto;
+}
+
+.qaf-app-picker__option,
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  color: #374151;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.qaf-app-picker__option:hover,
+.qaf-app-picker__option.is-active,
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-option:hover,
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-option:focus-visible,
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-option.is-active {
+  background: #f3f4f6;
+  outline: none;
+}
+
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-option.is-selected {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.qaf-app-picker__empty,
+.hmt-filter-modal .hmt-filter-select-panel .as-filter-select-empty {
+  margin: 0;
+  padding: 9px 14px;
+  color: #6b7280;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+/*
+ * Toolbar filter-dropdown font-size (Status/Type on Service Dashboard and
+ * Team Dashboard). Each page builds its own dropdown markup, but the size is
+ * declared once here via the shared classes so it stays reusable/consistent
+ * across both.
+ */
+.servdash-select-trigger,
+.servdash-select-option,
+.hmt-toolbar-select__trigger,
+.hmt-toolbar-select__label,
+.hmt-autocomplete__option {
+  font-size: var(--font-size-sm);
+}
+
+/*
+ * Placeholder-state text (the unselected "Status"/"All Types" label) matches
+ * the New autocomplete field's placeholder exactly - same color/weight as
+ * .qaf-app-picker__input::placeholder above - so both read as the same font
+ * on Service Dashboard and Team Dashboard.
+ */
+.servdash-custom-select:not(.has-value) .servdash-select-trigger__label,
+.hmt-toolbar-select__label--placeholder {
+  color: #64748b;
+  font-weight: 300;
+}
+
+/*
+ * Toolbar filter-dropdown box styling (Status/Type trigger, its dropdown
+ * list, and its options) - the visual box both pages already matched by
+ * hand-copying rule for rule, now declared once. Page-specific files keep
+ * only what's genuinely different between the two (Service Dashboard's
+ * trigger is a <div role="button">; Team Dashboard's is a native <button>
+ * that needs its own reset/!important overrides, and the two use different
+ * open/close arrow mechanics).
+ */
+.servdash-select-trigger,
+.hmt-toolbar-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #fff;
+  color: #4b5563;
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.servdash-select-trigger:hover,
+.servdash-select-trigger:focus-visible,
+.hmt-toolbar-select__trigger:hover,
+.hmt-toolbar-select__trigger:focus-visible {
+  border-color: #9ca3af;
+  outline: none;
+}
+
+.servdash-select-trigger__label,
+.hmt-toolbar-select__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+/* The 18x18 "clear selection" variant shared by both toolbar dropdowns
+   (distinct from the 24x24 base .hmt-field-clear used elsewhere on Team
+   Dashboard). */
+.servdash-select-clear,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-field-clear,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-field-clear,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-filter-close.hmt-field-clear,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-filter-close.hmt-field-clear {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.servdash-select-clear:hover,
+.servdash-select-clear:focus-visible,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-field-clear:hover,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-field-clear:hover,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-field-clear:focus-visible,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-field-clear:focus-visible,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-filter-close.hmt-field-clear:hover,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-filter-close.hmt-field-clear:hover,
+.hmt-toolbar-panel .hmt-toolbar__status .hmt-filter-close.hmt-field-clear:focus-visible,
+.hmt-toolbar-panel .hmt-toolbar__type .hmt-filter-close.hmt-field-clear:focus-visible {
+  color: #111827;
+  background: #f3f4f6;
+  outline: none;
+}
+
+/* Dropdown list box (border/shadow/scroll behavior) - z-index and exact
+   position are set per page below, since they sit in different stacking
+   contexts. */
+.servdash-select-menu,
+.hmt-toolbar-panel .hmt-autocomplete__list,
+.hmt-autocomplete__list--portal {
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  max-height: 202px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  box-sizing: border-box;
+}
+
+.servdash-select-menu:hover,
+.servdash-custom-select.is-open:hover .servdash-select-menu,
+.hmt-toolbar-panel .hmt-autocomplete__list:hover,
+.hmt-autocomplete__list--portal:hover {
+  scrollbar-color: #b8b8b8 transparent;
+}
+
+.servdash-select-menu::-webkit-scrollbar,
+.hmt-toolbar-panel .hmt-autocomplete__list::-webkit-scrollbar,
+.hmt-autocomplete__list--portal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.servdash-select-menu::-webkit-scrollbar-track,
+.hmt-toolbar-panel .hmt-autocomplete__list::-webkit-scrollbar-track,
+.hmt-autocomplete__list--portal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.servdash-select-menu::-webkit-scrollbar-thumb,
+.hmt-toolbar-panel .hmt-autocomplete__list::-webkit-scrollbar-thumb,
+.hmt-autocomplete__list--portal::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+}
+
+.servdash-select-menu:hover::-webkit-scrollbar-thumb,
+.servdash-custom-select.is-open:hover .servdash-select-menu::-webkit-scrollbar-thumb,
+.hmt-toolbar-panel .hmt-autocomplete__list:hover::-webkit-scrollbar-thumb,
+.hmt-autocomplete__list--portal:hover::-webkit-scrollbar-thumb {
+  background-color: #b8b8b8;
+}
+
+.servdash-select-option,
+.hmt-toolbar-panel .hmt-autocomplete__option,
+.hmt-autocomplete__list--portal .hmt-autocomplete__option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  color: #374151;
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.servdash-select-option:hover,
+.servdash-select-option:focus-visible,
+.hmt-toolbar-panel .hmt-autocomplete__option:hover,
+.hmt-toolbar-panel .hmt-autocomplete__option.is-active,
+.hmt-autocomplete__list--portal .hmt-autocomplete__option:hover,
+.hmt-autocomplete__list--portal .hmt-autocomplete__option.is-active {
+  background: #f3f4f6;
+  outline: none;
+}
+
+.servdash-select-option.is-selected,
+.hmt-toolbar-panel .hmt-autocomplete__option.is-selected,
+.hmt-autocomplete__list--portal .hmt-autocomplete__option.is-selected {
+  background: #f9fafb;
+  color: #111827;
+}
+
+/*
+ * SECTION: Badge and Tag Styles
+ * Reusable status pills and semantic variants.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-neutral-badge-border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-bg-muted);
+  color: var(--color-neutral-badge-text);
+  font-size: var(--font-size-sm);
+}
+
+.badge--allocated {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.badge--in-store {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-color: var(--color-success-border);
+}
+
+.badge--in-repair {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
+}
+
+.badge--send-for-disposal {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-border);
+}
+
+.badge--other {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+
+/*
+ * SECTION: Spacing Utility Classes
+ * Lightweight reusable spacing primitives for quick composition.
+ */
+.m-0 { margin: var(--space-0); }
+.mt-2 { margin-top: var(--space-3); }
+.mt-3 { margin-top: var(--space-4); }
+.mt-4 { margin-top: var(--space-5); }
+.p-0 { padding: var(--space-0); }
+.p-3 { padding: var(--space-4); }
+.p-4 { padding: var(--space-5); }
+.p-5 { padding: var(--space-6); }
+.gap-2 { gap: var(--space-3); }
+.gap-3 { gap: var(--space-4); }
+.gap-4 { gap: var(--space-5); }
+
+/*
+ * SECTION: Responsive and Media Query Overrides
+ * Mobile-first defaults are defined above; this section enhances tablet+desktop.
+ * Target widths: 375px base, 768px tablet, 1280px desktop.
+ */
+@media (min-width: 768px) {
+  .permission-form-grid,
+  .permission-access-grid,
+  .controls,
+  .as-filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .asset-grid,
+  .as-grid,
+  .department-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+}
+
+@media (min-width: 1280px) {
+  .as-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .department-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * SECTION: Miscellaneous Utilities
+ * Generic behavior helpers and low-level utility classes.
+ */
+.is-hidden,
+.is-view-hidden,
+.content-view[hidden],
+.asset-tab-card[hidden] {
+  display: none !important;
+}
+
+.is-active {
+  font-weight: var(--font-weight-medium);
+}
+
+.link,
+.serial-link,
+.settings-attachment-link,
+.as-detail-link {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+/*
+ * "Reason for Requirement" and similar grid links: blue, no underline (all states).
+ * Use class `reason-link` on the anchor or button styled as a link.
+ */
+.reason-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: inherit;
+}
+
+.link:hover,
+.serial-link:hover,
+.settings-attachment-link:hover,
+.as-detail-link:hover {
+  text-decoration: underline;
+}
+
+.reason-link:hover {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.reason-link:focus,
+.reason-link:focus-visible,
+.reason-link:active,
+.reason-link:visited {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.reason-link:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.error,
+.error-box {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+}
+
+/*
+ * SECTION: Additional Components (Tabs, Modals, Drawers)
+ * Extra reusable patterns found in audit that do not fit core sections.
+ */
+.asset-tabs,
+.settings-tabs,
+.permission-tabs,
+.as-detail-tabs,
+.page-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border-strong);
+  overflow-x: auto;
+}
+
+.modal-overlay,
+.as-filter-modal-overlay,
+.permission-modal,
+.permission-drawer,
+.as-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-overlay);
+  background: var(--color-bg-overlay);
+}
+
+.modal-panel,
+.as-filter-modal,
+.permission-modal__panel,
+.permission-drawer__panel,
+.as-detail-modal {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/*
+ * SECTION: Reusable Dropdown (qaf-dd-*)
+ * Styling reference: the toolbar "All Types" dropdown. Pair with
+ * QafLibrary.Dropdown (library.js) for open/close, outside-click, and
+ * viewport-safe positioning behavior. Any future page can reuse these
+ * classes directly on a trigger + list without duplicating this CSS.
+ */
+.qaf-dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  margin: 0;
+  padding: 0 34px 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 5px;
+  background: var(--color-bg-surface);
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: var(--font-weight-regular);
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.qaf-dd-trigger:hover,
+.qaf-dd-trigger:focus-visible {
+  border-color: #9ca3af;
+  outline: none;
+}
+
+.qaf-dd-label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.qaf-dd-label--placeholder {
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
+
+.qaf-dd-arrow {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 1;
+  color: #6b7280;
+  pointer-events: none;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.qaf-dd-trigger[aria-expanded="true"] .qaf-dd-arrow {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.qaf-dd-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.qaf-dd-clear:hover,
+.qaf-dd-clear:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--color-bg-muted);
+}
+
+.qaf-dd-clear[hidden] {
+  display: none !important;
+}
+
+.qaf-dd-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-2) 0;
+  list-style: none;
+  border: 1px solid var(--color-border-default);
+  border-radius: 5px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.qaf-dd-menu[hidden] {
+  display: none !important;
+}
+
+.qaf-dd-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.qaf-dd-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.qaf-dd-menu::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.qaf-dd-menu:hover::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+}
+
+.qaf-dd-option {
+  padding: var(--space-3) var(--space-5);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qaf-dd-option:hover,
+.qaf-dd-option.is-active {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.qaf-dd-option.is-selected {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* While portaled to <body> for viewport-safe positioning. */
+.qaf-dd-menu--portal {
+  position: fixed;
+}
+
+/*
+ * SECTION: Reusable Search Bar (qaf-search)
+ * Pair with QafLibrary.bindSearchClear (library.js) for clear-button
+ * show/hide + clear behavior.
+ */
+.qaf-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 5px;
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  padding: 0 34px 0 12px;
+  box-sizing: border-box;
+}
+
+.qaf-search__icon {
+  flex: 0 0 auto;
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.qaf-search__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 300;
+  color: var(--color-text-secondary);
+}
+
+.qaf-search__field::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.qaf-search__field:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.qaf-search__clear {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qaf-search__clear:hover,
+.qaf-search__clear:focus-visible {
+  color: var(--color-text-primary);
+  background: var(--color-bg-muted);
+}
+
+.qaf-search__clear[hidden] {
+  display: none !important;
+}
+
+/*
+ * SECTION: Reusable Buttons (qaf-btn)
+ * Additive component: apply alongside existing button classes. Preserves
+ * each page's current button colors/appearance while standardizing on a
+ * 30px height and 5px radius. Use qaf-btn--square only for icon-only
+ * buttons that are meant to be square (30x30).
+ */
+.qaf-btn {
+  height: 30px;
+  min-height: 30px;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.qaf-btn--square {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * SECTION: Reusable Checkbox (qaf-checkbox)
+ * The native <input> is layered on top of the visible box but made fully
+ * transparent (opacity: 0, not display/visibility hidden) so it stays
+ * focusable/clickable/announced to assistive tech while nothing native ever
+ * paints on screen. The visible box + checkmark is a plain sibling <span>
+ * styled entirely by this component, with no transition/animation declared
+ * anywhere - so the browser/OS can never apply its own native checked-state
+ * paint or "pop" animation to it; checking it is always an instant snap.
+ * Markup: <span class="qaf-checkbox-wrap">
+ *           <input type="checkbox" class="qaf-checkbox">
+ *           <span class="qaf-checkbox-box" aria-hidden="true"></span>
+ *         </span>
+ */
+.qaf-checkbox-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.qaf-checkbox {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.qaf-checkbox-box {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  border: 1px solid #888;
+  border-radius: 3px;
+  background: var(--color-bg-surface);
+  position: relative;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.qaf-checkbox:checked ~ .qaf-checkbox-box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.qaf-checkbox:checked ~ .qaf-checkbox-box::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 3px;
+  height: 7px;
+  border: solid var(--color-text-inverse);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.qaf-checkbox:focus-visible ~ .qaf-checkbox-box {
+  outline: 2px solid var(--color-primary-soft);
+  outline-offset: 1px;
+}
+
+.qaf-checkbox:disabled ~ .qaf-checkbox-box {
+  opacity: 0.5;
+}
+
+.qaf-checkbox:disabled {
+  cursor: not-allowed;
+}
