@@ -925,7 +925,11 @@
     const recordKeys = new Set();
     appState.records.forEach(rec => {
       Object.keys(rec).forEach(k => {
-        if (!SYSTEM_FIELDS_TO_HIDE.has(k) && !k.startsWith("_")) {
+        if (
+          !SYSTEM_FIELDS_TO_HIDE.has(k) &&
+          !k.startsWith("_") &&
+          !k.endsWith("_FileMetadata")
+        ) {
           recordKeys.add(k);
         }
       });
