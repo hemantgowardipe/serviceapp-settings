@@ -5,13 +5,14 @@
 (function () {
   "use strict";
 
-  console.log(
+console.log(
     "[Serviceapp_Report] main.js initialization:",
     !!window.__SERVICEAPP_REPORT_MAIN_INITIALIZED__
   );
 
   if (window.__SERVICEAPP_REPORT_MAIN_INITIALIZED__) {
     console.warn("[Serviceapp_Report] Duplicate main.js execution detected");
+    console.log(`[Serviceapp_Report] Duplicate script — URL=${window.location.href}, historyId=${(window.history.state && window.history.state.__serviceappHistoryId) || 'none'}, shellId=${document.querySelector('[data-serviceapp-shell]')?.dataset?.serviceappShellId || 'none'}`);
     if (typeof window.handleNavigationChange === "function") {
       window.handleNavigationChange("duplicateScriptExecution");
     }
@@ -87,7 +88,8 @@
     }
     var transient = [
       "ObjectName", "objectName", "object_name", "OBJECT_NAME",
-      "WfId", "wfid", "WFID", "WfID", "wf_id", "wfId"
+      "WfId", "wfid", "WFID", "WfID", "wf_id", "wfId",
+      "tab"
     ];
     var params = new URLSearchParams(url.search);
     transient.forEach(function (key) { params.delete(key); });
@@ -107,22 +109,17 @@
 
   var REPOSITORY_PAGE_SHELL_KEY = getRepositoryPageShellKey(window.location.href);
 
-  function isRepositoryPageContext() {
+function isRepositoryPageContext() {
+    // URL is the authoritative source - check if we're on ServiceRequestSetting page
     if (getRepositoryPageShellKey(window.location.href) !== REPOSITORY_PAGE_SHELL_KEY) {
       return false;
     }
+    // During initial load, DOM may not be ready yet - that's OK
     if (document.readyState === "loading") {
       return true;
     }
-    var table = document.getElementById("recordsTable");
-    var tableBody = document.getElementById("tableBody");
-    var pageTitle = document.getElementById("pageTitle");
-    if (!table || !tableBody || !pageTitle) {
-      return false;
-    }
-    if (typeof table.isConnected === "boolean" && !table.isConnected) {
-      return false;
-    }
+    // Don't require repository DOM elements - they may be temporarily missing
+    // during Angular route rebuild. The URL tells us we're on the right page.
     return true;
   }
 
@@ -229,17 +226,21 @@ function refreshParamsFromURL() {
     console.log('[Workflow Navigation] Workflow link href:', wfLink.href);
   }
 
-  /**
+/**
    * Apply tab state to UI without triggering navigation.
    * Used for initial load and popstate.
+   * @param {string} tabName - 'workflow' or 'repository'
+   * @param {number} [generation] - Navigation generation to verify before async operations
    */
-  function applyTabState(tabName) {
+  function applyTabState(tabName, generation) {
+    // Re-query ALL elements at time of application (don't cache across async boundaries)
     const repoLink = document.getElementById('linkRepositorySetting');
     const wfLink = document.getElementById('linkWorkflowSetting');
     const repoView = document.getElementById('repositoryView');
     const wfView = document.getElementById('workflowView');
-    const wfIframe = document.getElementById('workflowIframe');
     const pageHeader = document.getElementById('pageHeader');
+
+    console.log('[Workflow Navigation] Applying tab:', tabName, 'generation:', generation);
 
     if (tabName === 'workflow') {
       if (repoLink) repoLink.classList.remove('active');
@@ -248,16 +249,26 @@ function refreshParamsFromURL() {
       if (repoView) repoView.style.display = 'none';
       if (wfView) wfView.style.display = 'block';
 
-      // Resolve ObjectID and load iframe
-      ensureWorkflowObjectId().then(objectId => {
-        if (wfIframe && objectId) {
+      // Resolve ObjectID and load iframe with generation check
+      ensureWorkflowObjectId(generation).then(objectId => {
+        // Verify generation is still current before modifying DOM
+        if (generation !== undefined && generation !== navigationGeneration) {
+          console.log('[Workflow Navigation] Stale generation, aborting iframe load');
+          return;
+        }
+        // CRITICAL: Re-query iframe from CURRENT DOM after async resolution
+        // Angular may have replaced the DOM during the API call
+        const currentIframe = document.getElementById('workflowIframe');
+        console.log('[Workflow Navigation] Current iframe:', !!currentIframe);
+        if (currentIframe && objectId) {
           const baseUrl = getWorkflowBaseUrl();
           const targetUrl = `${baseUrl}/workflow-engine/${encodeURIComponent(objectId)}`;
-          console.log('[Workflow Navigation] Iframe URL:', targetUrl);
-          if (wfIframe.src !== targetUrl) {
-            wfIframe.src = targetUrl;
+          console.log('[Workflow Navigation] Iframe target:', targetUrl);
+          if (currentIframe.src !== targetUrl) {
+            currentIframe.src = targetUrl;
+            console.log('[Workflow Navigation] Workflow iframe loaded');
           }
-          wfIframe.onload = hideInnerSubnavButtons;
+          currentIframe.onload = hideInnerSubnavButtons;
         } else if (!objectId) {
           console.error('[Workflow] Cannot load workflow page: ObjectID not resolved');
           const container = document.querySelector('.workflow-iframe-container');
@@ -275,13 +286,20 @@ function refreshParamsFromURL() {
     }
   }
 
-  // â”€â”€â”€ INITIALIZATION & NAVIGATION GUARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// │││ INITIALIZATION & NAVIGATION GUARD ││││││││││││││││││││││││││││││││││││││││││││││││
   let repositoryLoadPromise = null;
   let lastActivatedRepositoryKey = null;
+  let lastActivatedPageShellId = null;  // Track which page shell the repository was last rendered in
   let navigationStateIsResolving = false;
   let navigationResolutionVersion = 0;
+  let lastHandledURL = null;  // Track last processed URL for idempotency
+  let lastHandledHistoryId = null;  // Track last processed history entry identity
+  
+  // Navigation Generation System - prevents stale async operations from previous navigations
+  let navigationGeneration = 0;
+  let currentPageShellId = null;  // Identity of current ServiceRequestSetting page instance
 
-  function getHistoryId() {
+function getHistoryId() {
     try {
       let state = window.history.state;
       if (!state || typeof state !== "object") {
@@ -289,7 +307,11 @@ function refreshParamsFromURL() {
       }
       if (!state.__serviceappHistoryId) {
         state.__serviceappHistoryId = "nav-" + Date.now() + "-" + Math.random().toString(36).substring(2, 8);
-        window.history.replaceState(state, document.title, window.location.href);
+        // Only set the history ID once on initial load, not on every navigation change
+        // Use _origReplaceState to avoid triggering handleNavigationChange recursion
+        if (window.location.href === document.location.href && _origReplaceState) {
+          _origReplaceState.call(window.history, state, document.title, window.location.href);
+        }
       }
       return state.__serviceappHistoryId;
     } catch (e) {
@@ -299,18 +321,18 @@ function refreshParamsFromURL() {
 
   function getRepositoryActivationKey() {
     refreshParamsFromURL();
-    const hid = getHistoryId();
+    // Use a stable key based on URL + objectName/wfId only (no history ID)
+    // This prevents history.replaceState calls from creating duplicate history entries
     return [
       appState.objectName || "",
       appState.wfId || "",
       window.location.pathname || "",
       window.location.search || "",
-      window.location.hash || "",
-      hid
+      window.location.hash || ""
     ].join("|");
   }
 
-  function waitForRepositoryDOM(timeoutMs = 5000) {
+function waitForRepositoryDOM(timeoutMs = 5000) {
     const getReadyTableBody = () => {
       const tableBody = document.getElementById("tableBody");
       const pageTitle = document.getElementById("pageTitle");
@@ -357,7 +379,98 @@ function refreshParamsFromURL() {
     });
   }
 
-  async function activateRepository() {
+/**
+   * Wait for NEW ServiceRequestSetting page DOM to be available.
+   * Detects when Angular has replaced the page shell by tracking page shell identity.
+   * Resolves when the NEW page's #workflowView, #workflowIframe, and #repositoryView exist.
+   * Used for lifecycle-safe navigation between tabs.
+   */
+  function waitForNewPageDOM(timeoutMs = 5000) {
+    // Capture the current page shell ID at call time
+    const expectedPageShellId = currentPageShellId;
+    
+    const getReadySettingsDOM = () => {
+      const workflowView = document.getElementById("workflowView");
+      const workflowIframe = document.getElementById("workflowIframe");
+      const repositoryView = document.getElementById("repositoryView");
+      return workflowView && workflowIframe && repositoryView ? { workflowView, workflowIframe, repositoryView } : null;
+    };
+
+    // Check if we already have the NEW page's DOM
+    const existing = getReadySettingsDOM();
+    if (existing && currentPageShellId === expectedPageShellId) {
+      console.log("[DOM Sync] New page DOM already available");
+      return Promise.resolve(existing);
+    }
+
+    console.log("[DOM Sync] Waiting for NEW ServiceRequestSetting page DOM...", { expectedPageShellId, currentPageShellId });
+
+    return new Promise((resolve) => {
+      let timer = null;
+
+      const observer = new MutationObserver(() => {
+        // Check if page shell has been replaced (new DOM instance)
+        if (currentPageShellId !== expectedPageShellId) {
+          console.log("[DOM Sync] Page shell replaced, new ID:", currentPageShellId);
+          const el = getReadySettingsDOM();
+          if (el) {
+            console.log("[DOM Sync] New page DOM ready");
+            if (timer) clearTimeout(timer);
+            observer.disconnect();
+            resolve(el);
+          }
+        }
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true,
+        subtree: true
+      });
+
+      timer = setTimeout(() => {
+        observer.disconnect();
+        // Final check - maybe the DOM was replaced but we missed it
+        const el = getReadySettingsDOM();
+        if (el && currentPageShellId === expectedPageShellId) {
+          console.log("[DOM Sync] New page DOM ready (timeout check)");
+          resolve(el);
+        } else {
+          console.warn("[DOM Sync] Timed out waiting for new page DOM");
+          resolve(null);
+        }
+      }, timeoutMs);
+    });
+  }
+
+  /**
+   * Detect and set the current page shell identity.
+   * Call this when a new ServiceRequestSetting page is initialized.
+   */
+  function detectPageShell() {
+    // Use a stable element that exists in the ServiceRequestSetting page shell
+    // We'll use a data attribute on a high-level container, or generate one
+    const shell = document.querySelector('[data-serviceapp-shell]') 
+      || document.querySelector('.service-request-setting')
+      || document.querySelector('main')
+      || document.body;
+    
+    if (shell) {
+      if (!shell.dataset.serviceappShellId) {
+        shell.dataset.serviceappShellId = 'shell-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+      }
+      const newId = shell.dataset.serviceappShellId;
+      if (newId !== currentPageShellId) {
+        console.log('[DOM Sync] New page shell detected:', newId, '(was:', currentPageShellId, ')');
+        currentPageShellId = newId;
+      }
+    }
+    return currentPageShellId;
+  }
+
+async function activateRepository(generation, source) {
+    // Capture generation at start
+    const myGeneration = generation !== undefined ? generation : navigationGeneration;
+    
     if (!isRepositoryPageContext()) {
       console.log("[Repository Activation] ignored — not on repository page");
       return;
@@ -376,6 +489,12 @@ function refreshParamsFromURL() {
 
     const objectName = appState.objectName;
     const activationKey = getRepositoryActivationKey();
+    const isPopstate = (source === 'popstate' || source === 'pageshow' || source === 'hashchange');
+    
+    // Check if repository is already rendered in current page shell
+    const tableBody = document.getElementById("tableBody");
+    const renderedRowCount = tableBody ? tableBody.children.length : 0;
+    const isRepositoryRenderedInCurrentShell = (lastActivatedPageShellId === currentPageShellId && renderedRowCount > 0);
 
 // Always reset pagination and search state on repository activation
     appState.currentPage = 1;
@@ -408,6 +527,7 @@ function refreshParamsFromURL() {
       appState.schemaFields = [];
       appState.totalRecordCount = 0;
       lastActivatedRepositoryKey = null;
+      lastActivatedPageShellId = null;
       const tbody = await waitForRepositoryDOM(5000);
       ensureSchemaFieldsFromRecords();
       applyFiltersAndRender();
@@ -415,33 +535,97 @@ function refreshParamsFromURL() {
     }
 
     if (repositoryLoadPromise) {
-      console.log("[Repository Activation] IGNORED â€” activation already in progress");
+      console.log("[Repository Activation] IGNORED — activation already in progress");
       return repositoryLoadPromise;
     }
 
-    if (lastActivatedRepositoryKey === activationKey) {
-      console.log("[Repository Activation] SKIPPED duplicate history activation");
+    // DIAGNOSTIC LOGGING
+    console.log("[Repository Activation] DIAGNOSTIC:", {
+      generation: myGeneration,
+      currentShellId: currentPageShellId,
+      activationKey: activationKey,
+      previousActivationKey: lastActivatedRepositoryKey,
+      lastActivatedShellId: lastActivatedPageShellId,
+      isPopstate: isPopstate,
+      tableBodyExists: !!tableBody,
+      renderedRowCount: renderedRowCount,
+      isRepositoryRenderedInCurrentShell: isRepositoryRenderedInCurrentShell,
+      source: source
+    });
+
+    // DUPLICATE CHECK LOGIC:
+    // Skip ONLY if:
+    // - Same activation key (same URL/objectName/wfId)
+    // - AND same page shell (repository was rendered in this shell)
+    // - AND repository is actually rendered (has rows)
+    // - AND NOT a browser history restoration (popstate/pageshow/hashchange)
+    // 
+    // DO NOT SKIP if:
+    // - New browser history generation (popstate/pageshow)
+    // - Different page shell (Angular replaced the DOM)
+    // - Repository not rendered in current shell (no rows)
+    const isDuplicateActivation = (
+      lastActivatedRepositoryKey === activationKey
+      && isRepositoryRenderedInCurrentShell
+      && !isPopstate
+    );
+
+    if (isDuplicateActivation) {
+      console.log("[Repository Activation] SKIPPED duplicate\nreason=same shell + same activation + repository already rendered + not popstate");
       return Promise.resolve();
     }
 
-    console.log("[Repository Activation] NEW HISTORY ACTIVATION");
+    if (lastActivatedRepositoryKey === activationKey && isPopstate) {
+      console.log("[Repository Activation] RUNNING history restoration\nreason=new history generation / popstate navigation");
+    } else if (lastActivatedRepositoryKey === activationKey && currentPageShellId !== lastActivatedPageShellId) {
+      console.log("[Repository Activation] RUNNING history restoration\nreason=new page shell (DOM replaced) / same URL");
+    } else if (lastActivatedRepositoryKey === activationKey && renderedRowCount === 0) {
+      console.log("[Repository Activation] RUNNING history restoration\nreason=repository not rendered in current shell (no rows)");
+    } else {
+      console.log("[Repository Activation] NEW HISTORY ACTIVATION generation=", myGeneration);
+    }
     console.log(`[Repository Activation] START ObjectName=${objectName}`);
 
     repositoryLoadPromise = (async () => {
       try {
-        setupLocalStorageCredentials();
+        // setupLocalStorageCredentials() is now called once at startup
 
         // The page shell may be created by QuickAppFlow after activation starts.
         // Wait on the existing repository DOM boundary before touching its title.
         await waitForRepositoryDOM(5000);
+        
+        // Verify generation before updating title
+        if (myGeneration !== navigationGeneration) {
+          console.log('[Repository Activation] Stale generation, aborting before title update');
+          return;
+        }
         updatePageTitle(objectName);
         showLoadingState();
         await ALWAYS_FETCH_GET_RECORDS_API();
+        
+        // Verify generation after API call
+        if (myGeneration !== navigationGeneration) {
+          console.log('[Repository Activation] Stale generation, aborting after API');
+          return;
+        }
         console.log("[Repository Activation] RNSP completed");
         console.log(`[Repository Activation] Records=${appState.records ? appState.records.length : 0}`);
 
         // Wait for #tableBody DOM element to exist before rendering
         const tbody = await waitForRepositoryDOM(5000);
+        
+        // Verify generation before rendering
+        if (myGeneration !== navigationGeneration) {
+          console.log('[Repository Activation] Stale generation, aborting before render');
+          return;
+        }
+        
+        // Verify we're still on the repository tab
+        const finalTab = getCurrentTabFromURL();
+        if (finalTab !== 'repository') {
+          console.log('[Repository Activation] Tab changed to workflow, aborting render');
+          return;
+        }
 
         console.log("[Repository Activation] Rendering repository");
         ensureSchemaFieldsFromRecords();
@@ -451,8 +635,9 @@ function refreshParamsFromURL() {
         console.log(`[Repository Activation] Rendered rows=${rowCount}`);
         console.log("[Repository Activation] END");
 
-        // Mark activation as successfully completed ONLY AFTER RNSP succeeds & table renders
+// Mark activation as successfully completed ONLY AFTER RNSP succeeds & table renders
         lastActivatedRepositoryKey = activationKey;
+        lastActivatedPageShellId = currentPageShellId;
       } catch (err) {
         console.error("[Repository Activation] Error during activation:", err);
       } finally {
@@ -463,33 +648,69 @@ function refreshParamsFromURL() {
     return repositoryLoadPromise;
   }
 
-  function handleNavigationChange(source) {
+function handleNavigationChange(source) {
+    // URL is the authority - check if we're on ServiceRequestSetting page
     if (!isRepositoryPageContext()) {
       console.log("[Navigation] ignored — not on repository page, source=" + source);
       return Promise.resolve();
     }
 
+    // Detect new page shell (Angular may have replaced the DOM)
+    detectPageShell();
+
+    // Get history entry identity for this navigation
+    const currentURL = window.location.href;
+    const historyId = getHistoryId();
+    const isHistoryRestoration = (source === 'popstate' || source === 'pageshow');
+    const isDuplicateScriptExecution = (source === 'duplicateScriptExecution');
+    const isNewHistoryEntry = (historyId !== lastHandledHistoryId);
+    const isNewURL = (currentURL !== lastHandledURL);
+
+    // Idempotency: skip ONLY genuinely redundant events.
+    // Allow if:
+    // - History restoration (popstate/pageshow) with a new history entry (browser Back/Forward)
+    // - Duplicate script execution for a new page shell (QuickAppFlow reload after Angular rebuild)
+    // - New URL (pushState/replaceState/hashchange with actual URL change)
+    // Skip only if: same URL AND same history entry AND not a special source
+    const isGenuineDuplicate = !isHistoryRestoration && !isDuplicateScriptExecution && !isNewURL && !isNewHistoryEntry;
+
+    if (isGenuineDuplicate) {
+      console.log(`[Navigation] SKIPPED duplicate — URL unchanged and same history entry: ${source}`);
+      return Promise.resolve();
+    }
+
+    // Track this navigation entry
+    lastHandledURL = currentURL;
+    lastHandledHistoryId = historyId;
+
+    // Log navigation identity for diagnostics
+    console.log(`[Navigation] identity: source=${source}, historyId=${historyId}, isHistoryRestoration=${isHistoryRestoration}, isDuplicateScriptExecution=${isDuplicateScriptExecution}, isNewHistoryEntry=${isNewHistoryEntry}, isNewURL=${isNewURL}`);
+
+    // Increment navigation generation for this navigation event
+    // This invalidates all in-flight async operations from previous navigations
+    const myGeneration = ++navigationGeneration;
+
     refreshParamsFromURL();
     const currentObjectName = appState.objectName;
     const initInProgress = !!repositoryLoadPromise;
     const recordCount = appState.records ? appState.records.length : 0;
-    const historyId = getHistoryId();
 
-    console.log(`[Navigation] source=${source}`);
+    console.log(`[Navigation] source=${source} generation=${myGeneration}`);
     console.log(`[Navigation] historyId=${historyId}`);
     console.log(`[Navigation] URL=${location.href}`);
     console.log(`[Navigation] ObjectName=${currentObjectName || "null"}`);
     console.log(`[Navigation] scriptInstance=${window.__SERVICEAPP_SCRIPT_INSTANCE_ID__ || "1"}`);
     console.log(`[Navigation] repositoryLoadInProgress=${initInProgress}`);
     console.log(`[Navigation] records=${recordCount}`);
+    console.log(`[Navigation] pageShellId=${currentPageShellId}`);
 
     // 1. Defer if DOM is still loading
     if (document.readyState === "loading") {
-      console.log("[Bootstrap] DOM not ready â€” deferring initialization");
+      console.log("[Bootstrap] DOM not ready — deferring initialization");
       if (!window._domContentLoadedListenerAdded) {
         window._domContentLoadedListenerAdded = true;
         document.addEventListener("DOMContentLoaded", () => {
-          console.log("[Bootstrap] DOM ready â€” continuing initialization");
+          console.log("[Bootstrap] DOM ready — continuing initialization");
           handleNavigationChange("DOMContentLoaded");
         }, { once: true });
       }
@@ -502,7 +723,7 @@ function refreshParamsFromURL() {
     const resolutionVersion = ++navigationResolutionVersion;
     if (!currentObjectName) {
       navigationStateIsResolving = true;
-      return Promise.resolve().then(() => {
+return Promise.resolve().then(() => {
         if (resolutionVersion !== navigationResolutionVersion) return;
         if (!isRepositoryPageContext()) {
           navigationStateIsResolving = false;
@@ -510,7 +731,7 @@ function refreshParamsFromURL() {
         }
         refreshParamsFromURL();
         navigationStateIsResolving = false;
-        return activateRepository();
+        return activateRepository(myGeneration, source);
       });
     }
 
@@ -518,24 +739,55 @@ function refreshParamsFromURL() {
 
     // 3. Check tab state from URL and apply if needed
     const currentTab = getCurrentTabFromURL();
-    console.log('[Workflow Navigation] Current tab from URL:', currentTab);
-    applyTabState(currentTab);
-    updateTabLinks();
+    console.log('[Workflow Navigation] URL state:', currentTab, 'generation=', myGeneration);
 
-    // 4. Delegate to activateRepository only for repository tab
-    if (currentTab === 'repository') {
-      return activateRepository();
+    // For workflow tab, wait for NEW page DOM to be ready before applying state
+    if (currentTab === 'workflow') {
+      return waitForNewPageDOM(5000).then(settingsDOM => {
+        // Verify navigation generation is still current
+        if (myGeneration !== navigationGeneration) {
+          console.log('[Workflow Navigation] Stale generation, aborting');
+          return;
+        }
+        console.log('[Workflow Navigation] New DOM ready:', !!settingsDOM);
+        if (settingsDOM) {
+          // Re-read URL to ensure tab=workflow is still current
+          const finalTab = getCurrentTabFromURL();
+          console.log('[Workflow Navigation] Applying URL state:', finalTab);
+          if (finalTab === 'workflow') {
+            applyTabState(finalTab, myGeneration);
+            updateTabLinks();
+          }
+        } else {
+          console.warn('[Workflow Navigation] New page DOM not ready, tab state may be stale');
+        }
+      });
     }
-    
-    return Promise.resolve();
+
+    // For repository tab, wait for NEW page DOM then apply state and activate repository
+    return waitForNewPageDOM(5000).then(settingsDOM => {
+      // Verify navigation generation is still current
+      if (myGeneration !== navigationGeneration) {
+        console.log('[Repository Navigation] Stale generation, aborting');
+        return;
+      }
+      applyTabState(currentTab, myGeneration);
+      updateTabLinks();
+      
+if (currentTab === 'repository') {
+        console.log('[Repository Activation] Repository URL state confirmed:', currentTab);
+        console.log('[Repository Activation] Starting repository load:');
+        return activateRepository(myGeneration, source);
+      }
+    });
   }
 
   function _bootstrapApp() {
     return handleNavigationChange("bootstrap");
   }
 
-  async function initApp() {
-    return activateRepository();
+async function initApp() {
+    return activateRepository(navigationGeneration, 'initApp');
   }
 
   // Initial trigger
@@ -555,17 +807,26 @@ function refreshParamsFromURL() {
     handleNavigationChange("windowLoad");
   }, { once: true });
 
-  // BFCache & page visibility lifecycle
+// BFCache & page visibility lifecycle
   window.addEventListener("pageshow", (event) => {
     console.log("[Navigation] pageshow persisted=" + event.persisted + " URL=" + location.href);
+    console.log(`[Navigation] pageshow historyId=${getHistoryId()}`);
     if (event.persisted) {
+      console.log("[Navigation] BFCACHE RESTORATION DETECTED — forcing repository re-evaluation");
+      // Page restored from bfcache - reset repo key but let handleNavigationChange
+      // handle idempotency via URL tracking
       lastActivatedRepositoryKey = null;
+      lastActivatedPageShellId = null;
     }
+    // Always call handleNavigationChange - it's now idempotent via lastHandledURL + lastHandledHistoryId
     handleNavigationChange("pageshow");
   });
 
-  // SPA & Browser Navigation Event Listeners â€” all pass through handleNavigationChange
+// SPA & Browser Navigation Event Listeners — all pass through handleNavigationChange
   window.addEventListener('popstate', () => {
+    console.log('[Navigation] popstate:');
+    console.log('[Navigation] URL after popstate:', window.location.href);
+    console.log(`[Navigation] popstate historyId=${getHistoryId()}`);
     handleNavigationChange("popstate");
   });
   window.addEventListener('hashchange', () => { handleNavigationChange("hashchange"); });
@@ -608,23 +869,31 @@ function refreshParamsFromURL() {
       }
       if (changed) {
         console.log("[Message Event] Received ObjectName from parent message:", appState.objectName);
-        activateRepository();
+        // Trigger central navigation controller to handle this change with proper generation tracking
+        handleNavigationChange("message");
       }
     }
   });
 
-  // Fallback observer: if the redirecting host sets ObjectName in URL/hash/parent asynchronously after page load,
+// Fallback observer: if the redirecting host sets ObjectName in URL/hash/parent asynchronously after page load,
   // periodically check during early load so the first navigation never requires an F5 refresh.
   function scheduleInitialRedirectObserver() {
     const checks = [150, 400, 800, 1500, 3000];
     checks.forEach((delay) => {
       setTimeout(() => {
+        // Skip redirect observer entirely when Workflow tab is active - it only causes noise
+        const currentTab = getCurrentTabFromURL();
+        if (currentTab === 'workflow') {
+          console.log(`[Redirect Observer @ ${delay}ms] Skipped - Workflow tab active`);
+          return;
+        }
         if ((!appState.records || appState.records.length === 0) && !repositoryLoadPromise) {
           const before = appState.objectName;
           refreshParamsFromURL();
           if (appState.objectName && (!before || appState.objectName !== before || !appState.records || appState.records.length === 0)) {
-            console.log(`[Redirect Observer @ ${delay}ms] Detected ObjectName='${appState.objectName}' â€” activating repository`);
-            activateRepository();
+            console.log(`[Redirect Observer @ ${delay}ms] Detected ObjectName='${appState.objectName}' — activating repository`);
+            // Trigger central navigation controller to handle this change with proper generation tracking
+            handleNavigationChange("redirectObserver");
           }
         }
       }, delay);
@@ -661,6 +930,9 @@ function refreshParamsFromURL() {
     } catch (e) { }
   }
 
+  // Call setupLocalStorageCredentials ONCE at startup so env is set before any tab logic runs
+  setupLocalStorageCredentials();
+
   function getAuthHeaders() {
     let userKey = null;
     try {
@@ -682,16 +954,13 @@ function refreshParamsFromURL() {
 }
 
 /**
- * Get the QuickAppFlow base URL from localStorage.
- * This is set by setupLocalStorageCredentials() using the 'env' key.
- * Falls back to window.location.origin if not set.
+ * Get the Workflow Engine base URL for the iframe.
+ * Uses the current tenant's public application origin (window.location.origin)
+ * because the Workflow Engine is a web application page, not an API endpoint.
+ * localStorage.env continues to be used for API/service calls (e.g., WFConfigByID).
  */
 function getWorkflowBaseUrl() {
-  const envUrl = localStorage.getItem("env");
-  if (envUrl) {
-    return envUrl.replace(/\/+$/, ""); // Remove trailing slash if present
-  }
-  // Fallback to current page origin
+  // Use the current tenant's public application origin for the Workflow iframe
   return (window.location && window.location.origin) ? window.location.origin : "";
 }
 
@@ -806,12 +1075,18 @@ function getCurrentUserName() {
 // fetchWFConfig and fetchViewID removed â€” repository selection is now done exclusively
   // via ObjectName â†’ Serviceapp_Report. WFConfigByID and ViewGet are no longer used for data loading.
 
-  /**
+/**
    * Ensure workflow ObjectID is resolved from wfId.
    * Called when Workflow Setting tab is activated.
    * Caches result in appState.objectId to avoid redundant API calls.
+   * @param {number} [generation] - Navigation generation to verify before returning
    */
-async function ensureWorkflowObjectId() {
+async function ensureWorkflowObjectId(generation) {
+  // Check generation early
+  if (generation !== undefined && generation !== navigationGeneration) {
+    console.log('[Workflow Navigation] Stale generation, aborting ObjectID resolution');
+    return null;
+  }
   if (appState.objectId) {
     // Already resolved
     console.log('[Workflow Navigation] Resolved ObjectID (cached):', appState.objectId);
@@ -823,6 +1098,11 @@ async function ensureWorkflowObjectId() {
   }
   console.log('[Workflow Navigation] WfId:', appState.wfId);
   const objectId = await resolveWorkflowObjectId(appState.wfId);
+  // Verify generation again after async operation
+  if (generation !== undefined && generation !== navigationGeneration) {
+    console.log('[Workflow Navigation] Stale generation after API, aborting');
+    return null;
+  }
   if (objectId) {
     appState.objectId = objectId;
     console.log('[Workflow Navigation] Resolved ObjectID:', objectId);
@@ -891,6 +1171,7 @@ function switchTab(tabName, event) {
     console.log('[Workflow Navigation] WfId:', appState.wfId);
 
     // Update browser URL with tab parameter using pushState
+    // The pushState override will call handleNavigationChange which applies tab state
     const url = new URL(window.location.href);
     if (tabName === 'workflow') {
       url.searchParams.set('tab', 'workflow');
@@ -906,17 +1187,12 @@ function switchTab(tabName, event) {
     
     console.log('[Workflow Navigation] Parent URL updated:', url.toString());
     
-    // Update tab link hrefs
+    // Update tab link hrefs (synchronous, doesn't trigger navigation)
     updateTabLinks();
-    
-    // Apply tab state to UI
-    applyTabState(tabName);
 
-    // If switching to repository, trigger repository activation
-    if (tabName === 'repository') {
-      lastActivatedRepositoryKey = null;
-      activateRepository();
-    }
+    // Do NOT call activateRepository() directly.
+    // Let handleNavigationChange (triggered by pushState override) apply state based on URL.
+    // This ensures proper sequencing after Angular route rebuild.
   }
 
   function updatePageTitle(titleName) {
