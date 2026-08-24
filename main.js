@@ -901,21 +901,10 @@ async function initApp() {
   }
   scheduleInitialRedirectObserver();
 
-  function setupLocalStorageCredentials() {
-    if (!localStorage.getItem("user_key")) {
-      const defaultUserKey = {
-        timeStamp: new Date().toISOString(),
-        value: {
-          EmployeeID: 1081,
-          HrzempId: 0,
-          EmployeeGUID: "55e2ecd3-9b12-401b-b1d2-b7c90b260b76",
-          Email: "hemantgowardipe442@gmail.com",
-          FirstName: "Hemant",
-          LastName: "Gowardipe"
-        }
-      };
-      localStorage.setItem("user_key", JSON.stringify(defaultUserKey));
-    }
+function setupLocalStorageCredentials() {
+    // Do NOT create a hardcoded default user. The application must use the
+    // currently authenticated user's localStorage.user_key data exclusively.
+    // If user_key does not exist, do not manufacture a user identity.
 
     const currentDomain = (window.location && window.location.origin) ? window.location.origin : "https://ndem.quickappflow.com";
     localStorage.setItem("env", currentDomain);
@@ -933,16 +922,29 @@ async function initApp() {
   // Call setupLocalStorageCredentials ONCE at startup so env is set before any tab logic runs
   setupLocalStorageCredentials();
 
-  function getAuthHeaders() {
+function getAuthHeaders() {
     let userKey = null;
     try {
       const raw = localStorage.getItem("user_key");
       if (raw) userKey = JSON.parse(raw);
-    } catch (e) { }
+    } catch (e) {
+      console.error("[Auth] Failed to parse user_key from localStorage:", e);
+      return null;
+    }
 
-    const empGuid = userKey && userKey.value && userKey.value.EmployeeGUID ? userKey.value.EmployeeGUID : "55e2ecd3-9b12-401b-b1d2-b7c90b260b76";
-    const email = userKey && userKey.value && userKey.value.Email ? userKey.value.Email : "hemantgowardipe442@gmail.com";
-    const empId = userKey && userKey.value && userKey.value.EmployeeID ? String(userKey.value.EmployeeID) : "1081";
+    if (!userKey || !userKey.value) {
+      console.error("[Auth] user_key missing or malformed in localStorage");
+      return null;
+    }
+
+    const empGuid = userKey.value.EmployeeGUID;
+    const email = userKey.value.Email;
+    const empId = userKey.value.EmployeeID != null ? String(userKey.value.EmployeeID) : null;
+
+    if (!empGuid || !email || empId === null) {
+      console.error("[Auth] Required identity fields missing from user_key:", { empGuid: !!empGuid, email: !!email, empId: empId !== null });
+      return null;
+    }
 
     return {
       "Accept": "application/json",
@@ -1043,7 +1045,7 @@ function getCurrentUserName() {
         }
       }
     } catch (e) { }
-    return "Hemant Gowardipe";
+    return "User";
   }
 
   async function initApp() {
@@ -2640,11 +2642,47 @@ function updatePaginationControls() {
     });
   }
 
-  async function viewRecordInNewWindow(recordId, event) {
+  function viewRecordInNewWindow(recordId, event) {
     if (event) event.stopPropagation();
     closeAllRowMenus();
-    // Keep the row key for later API wiring. No API call is made here.
-    return recordId;
+
+    if (!recordId) {
+      showToast("Unable to open record: RecordID is missing.", "error");
+      return;
+    }
+
+    const selectedRecord = Array.isArray(appState.records)
+      ? appState.records.find(record =>
+          String(record?.RecordID ?? "") === String(recordId)
+        )
+      : null;
+
+    if (!selectedRecord) {
+      showToast("Unable to open record: selected record was not found.", "error");
+      return;
+    }
+
+    const objectId = selectedRecord.ObjectID;
+
+    if (!objectId) {
+      showToast("Unable to open record: ObjectID is missing.", "error");
+      return;
+    }
+
+    const baseUrl = localStorage.getItem("env");
+    if (!baseUrl) {
+      showToast("Unable to open record: tenant environment is unavailable.", "error");
+      return;
+    }
+
+    const targetUrl =
+      `${baseUrl.replace(/\/+$/, "")}/record/${encodeURIComponent(objectId)}/${encodeURIComponent(recordId)}/view`;
+
+    console.log("[View in New Window] ObjectID:", objectId);
+    console.log("[View in New Window] RecordID:", recordId);
+    console.log("[View in New Window] Target URL:", targetUrl);
+
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
   }
 
   async function editRecord(recordId, event) {
@@ -2769,7 +2807,7 @@ async function openNewRecordDrawer() {
     if (el) el.value = "";
   }
 
-  async function saveCurrentRecord() {
+async function saveCurrentRecord() {
     // NOTE: Serviceapp_Report is a READ workflow. SaveRecord/UpdateRecord use the
     // QuickAppFlow SaveRecord API (objectID-based). Without a real objectID for the
     // selected repository, save cannot guarantee correct persistence.
@@ -2780,6 +2818,13 @@ async function openNewRecordDrawer() {
       showToast("No repository selected. Cannot save record.", "error");
       return;
     }
+
+    // Get current user identity for save payload
+    let currentUser = null;
+    try {
+      const raw = localStorage.getItem("user_key");
+      if (raw) currentUser = JSON.parse(raw).value;
+    } catch (e) { }
 
     const recordID = document.getElementById("field_recordID")?.value || "rec-" + Date.now();
     const createdBy = document.getElementById("field_CreatedBy")?.value || getCurrentUserName();
@@ -2803,12 +2848,17 @@ async function openNewRecordDrawer() {
       }
     });
 
+    const createdByID = currentUser?.EmployeeID != null ? String(currentUser.EmployeeID) : "10";
+    const createdByGUID = currentUser?.EmployeeGUID || "";
+    const lastModifiedBy = currentUser?.EmployeeID != null ? String(currentUser.EmployeeID) : "10";
+    const lastModifiedByGUID = currentUser?.EmployeeGUID || "";
+
     const payload = {
       DrMode: false,
-      createdByID: 10,
-      createdByGUID: "55e2ecd3-9b12-401b-b1d2-b7c90b260b76",
-      lastModifiedBy: 10,
-      lastModifiedByGUID: "55e2ecd3-9b12-401b-b1d2-b7c90b260b76",
+      createdByID: createdByID,
+      createdByGUID: createdByGUID,
+      lastModifiedBy: lastModifiedBy,
+      lastModifiedByGUID: lastModifiedByGUID,
       objectName: appState.objectName,
       recordID: recordID,
       recordFieldValues: recordFieldValues,
@@ -3023,12 +3073,24 @@ async function openNewRecordDrawer() {
         if (typeof guidRes === "string" && guidRes.length > 10) newGuid = guidRes;
       } catch (e) { }
 
+      // Get current user identity for import payload
+      let currentUser = null;
+      try {
+        const raw = localStorage.getItem("user_key");
+        if (raw) currentUser = JSON.parse(raw).value;
+      } catch (e) { }
+
+      const createdByID = currentUser?.EmployeeID != null ? String(currentUser.EmployeeID) : "10";
+      const createdByGUID = currentUser?.EmployeeGUID || "";
+      const lastModifiedBy = currentUser?.EmployeeID != null ? String(currentUser.EmployeeID) : "10";
+      const lastModifiedByGUID = currentUser?.EmployeeGUID || "";
+
       const payload = {
         DrMode: false,
-        createdByID: 10,
-        createdByGUID: "55e2ecd3-9b12-401b-b1d2-b7c90b260b76",
-        lastModifiedBy: 10,
-        lastModifiedByGUID: "55e2ecd3-9b12-401b-b1d2-b7c90b260b76",
+        createdByID: createdByID,
+        createdByGUID: createdByGUID,
+        lastModifiedBy: lastModifiedBy,
+        lastModifiedByGUID: lastModifiedByGUID,
         objectName: appState.objectName,
         recordID: newGuid,
         recordFieldValues: recordFieldValues,
