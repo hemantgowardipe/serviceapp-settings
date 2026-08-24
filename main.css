@@ -374,7 +374,8 @@ body {
 .subcategory-table,
 .permission-table,
 .qaf-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   table-layout: fixed;
   border: 0;
   border-radius: 0;
@@ -400,6 +401,15 @@ body {
   min-width: 100% !important;
 }
 
+/* Ensure tables naturally expand to fit column content without collapsing,
+   relying on table-wrap's overflow-x:auto for horizontal scrolling. */
+.table-wrap .subcategory-table,
+.table-wrap .permission-table,
+.table-wrap .qaf-table {
+  width: max-content;
+  min-width: 100%;
+}
+
 .subcategory-table thead th,
 .permission-table thead th,
 .qaf-table thead th {
@@ -419,7 +429,7 @@ body {
   border-bottom: 0 !important;
   transform: translateZ(0);
   padding: var(--space-4, 10px) var(--space-4, 10px);
-  text-align: left;
+  text-align: center;
   font-size: 13px;
   font-weight: var(--font-weight-regular, 400);
   font-family: var(--font-family-base, "Poppins", "DM Sans", "Segoe UI", Arial, sans-serif);
@@ -431,7 +441,7 @@ body {
 .qaf-table tbody td {
   border-bottom: 1px solid var(--color-border-default, #e5e7eb);
   padding: var(--space-4, 10px) var(--space-4, 10px);
-  text-align: left;
+  text-align: center;
   font-size: 13px;
   font-weight: var(--font-weight-regular, 400);
   font-family: var(--font-family-base, "Poppins", "DM Sans", "Segoe UI", Arial, sans-serif);
