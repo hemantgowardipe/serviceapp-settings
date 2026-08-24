@@ -1857,24 +1857,34 @@ function applyFiltersAndRender() {
   }
 
   function getInitialGridColumnWidths(table) {
-    const wrapper = table.closest(".table-wrap") || table.closest(".table-responsive");
-    const availableWidth = Math.round((wrapper && wrapper.clientWidth) || table.clientWidth || 0);
-    const dataColumnCount = appState.schemaFields.length;
-    const utilityColumnWidths = [40, 40];
+    const utilityColumnWidths = [40, 40]; // checkbox + actions columns
     const companyMinimumDataWidth = 90;
+    const dataColumnCount = appState.schemaFields.length;
 
-    if (!availableWidth || dataColumnCount === 0) return utilityColumnWidths;
+    if (dataColumnCount === 0) return utilityColumnWidths;
 
-    const availableDataWidth = Math.max(
-      availableWidth - utilityColumnWidths[0] - utilityColumnWidths[1],
-      dataColumnCount * companyMinimumDataWidth
-    );
-    const baseDataWidth = Math.floor(availableDataWidth / dataColumnCount);
-    const remainingPixels = availableDataWidth - (baseDataWidth * dataColumnCount);
+    // Create a measurement context matching the table header styling
+    // Header font: 400 13px 'Poppins', 'DM Sans', 'Segoe UI', Arial, sans-serif
+    // Header padding: left 10px + right 24px (for sortable columns with sort icon) = 34px
+    // Sort icon width: 10px at right: 8px
+    // Safety buffer: 8px
+    const MEASUREMENT_FONT = "400 13px 'Poppins', 'DM Sans', 'Segoe UI', Arial, sans-serif";
+    const HEADER_HORIZONTAL_PADDING = 34; // left 10px + right 24px (includes sort icon space)
+    const SAFETY_BUFFER = 8;
 
-    return utilityColumnWidths.concat(
-      appState.schemaFields.map((_, index) => baseDataWidth + (index < remainingPixels ? 1 : 0))
-    );
+    // Use canvas for accurate text measurement
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = MEASUREMENT_FONT;
+
+    const dataColumnWidths = appState.schemaFields.map(f => {
+      const displayName = f.displayName || '';
+      const textWidth = Math.ceil(ctx.measureText(displayName).width);
+      const requiredWidth = textWidth + HEADER_HORIZONTAL_PADDING + SAFETY_BUFFER;
+      return Math.max(companyMinimumDataWidth, requiredWidth);
+    });
+
+    return utilityColumnWidths.concat(dataColumnWidths);
   }
 
   function clearLegacyGridTableWidthsOnce() {
