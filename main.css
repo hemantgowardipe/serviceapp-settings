@@ -608,9 +608,9 @@ body {
   background: transparent;
 }
 
-.subcategory-table thead th:hover .gt-col-resizer::after,
-.permission-table thead th:hover .gt-col-resizer::after,
-.qaf-table thead th:hover .gt-col-resizer::after {
+.subcategory-table thead:hover th .gt-col-resizer::after,
+.permission-table thead:hover th .gt-col-resizer::after,
+.qaf-table thead:hover th .gt-col-resizer::after {
   background: var(--color-border-default, #e5e7eb);
 }
 
