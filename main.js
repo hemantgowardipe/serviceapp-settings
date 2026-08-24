@@ -2352,14 +2352,16 @@ function updatePaginationControls() {
     if (event) event.stopPropagation();
     closeAllRowMenus();
 
-    // Use the already-fetched record from appState â€” Serviceapp_Report is the sole data source.
-    // GetSingleRecord (objectID-based) is no longer used.
-    const record = appState.records.find(r => r.RecordID === recordId);
-
-    if (record) {
-      openDrawer(record);
-      setDrawerReadOnly(true);
+    if (!window.QafLibrary || typeof window.QafLibrary.openViewForm !== "function") {
+      showToast("OOTB View form is not available.", "error");
+      return;
     }
+
+    window.QafLibrary.openViewForm({
+      repositoryName: appState.objectName,
+      objectID: appState.objectName,
+      recordID: recordId
+    });
   }
 
   async function viewRecordInNewWindow(recordId, event) {
@@ -2373,11 +2375,19 @@ function updatePaginationControls() {
     if (event) event.stopPropagation();
     closeAllRowMenus();
 
-    let record = appState.records.find(r => r.RecordID === recordId);
-    if (record) {
-      openDrawer(record);
-      setDrawerReadOnly(false);
+    if (!window.QafLibrary || typeof window.QafLibrary.openEditForm !== "function") {
+      showToast("OOTB Edit form is not available.", "error");
+      return;
     }
+
+    window.QafLibrary.openEditForm({
+      repositoryName: appState.objectName,
+      objectID: appState.objectName,
+      recordID: recordId,
+      onDone: async function () {
+        await ALWAYS_FETCH_GET_RECORDS_API();
+      }
+    });
   }
 
   function setDrawerReadOnly(isReadOnly) {
@@ -2409,20 +2419,17 @@ function updatePaginationControls() {
     if (event) event.stopPropagation();
     closeAllRowMenus();
 
-    if (!confirm("Are you sure you want to delete this record?")) return;
-
-    try {
-      await fetchWithRetry(`https://ndem.quickappflow.com/api/DeleteRecord?recordID=${recordId}`, {
-        method: "POST",
-        headers: getAuthHeaders()
-      }, 2, 300);
-    } catch (err) {
-      console.warn("[LWR] DeleteRecord API error:", err.message);
+    if (!window.QafLibrary || typeof window.QafLibrary.deleteRecord !== "function") {
+      showToast("OOTB Delete is not available.", "error");
+      return;
     }
 
-appState.records = appState.records.filter(r => r.RecordID !== recordId);
-    applyFiltersAndRender();
-    showToast("Record deleted successfully.", "success");
+    window.QafLibrary.deleteRecord({
+      recordID: recordId,
+      onDone: async function () {
+        await ALWAYS_FETCH_GET_RECORDS_API();
+      }
+    });
   }
 
 async function openNewRecordDrawer() {
