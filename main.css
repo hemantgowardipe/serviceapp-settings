@@ -375,7 +375,6 @@ body {
 .permission-table,
 .qaf-table {
   width: max-content;
-  min-width: 100%;
   table-layout: fixed;
   border: 0;
   border-radius: 0;
@@ -394,20 +393,17 @@ body {
   min-width: 100%;
 }
 
-/* GridTable owns inline column widths. Keep the table box at least as wide as
-   its wrapper after a column is narrowed, while preserving wider tables for
-   the existing horizontal-scroll state. */
+/* GridTable owns inline column widths. Allow table to shrink to content width
+   when columns are few; horizontal scrolling handles overflow when columns are many. */
 .table-wrap .qaf-table[data-gt-resizable] {
-  min-width: 100% !important;
+  /* min-width removed - table stays at natural content width */
 }
 
-/* Ensure tables naturally expand to fit column content without collapsing,
-   relying on table-wrap's overflow-x:auto for horizontal scrolling. */
+/* Tables stay at natural content width; horizontal scrolling handles overflow */
 .table-wrap .subcategory-table,
 .table-wrap .permission-table,
 .table-wrap .qaf-table {
   width: max-content;
-  min-width: 100%;
 }
 
 .subcategory-table thead th,

@@ -1695,6 +1695,63 @@ function switchTab(tabName, event) {
     });
   }
 
+/**
+   * Expand data columns (index 2+) to fill available wrapper width when natural width is smaller.
+   * Utility columns (index 0 = checkbox, index 1 = actions) remain fixed at 40px.
+   * Only expands when total natural width < available width; preserves horizontal scrolling when wider.
+   * Respects saved/manual widths - only runs on initial load/refresh, not during drag.
+   */
+  function expandDataColumnsToFillWidth(table) {
+    if (!table) return;
+    var wrap = table.closest(".table-wrap") || table.closest(".table-responsive");
+    if (!wrap) return;
+    var availableWidth = wrap.clientWidth;
+    if (!availableWidth) return;
+
+    var cols = table.querySelectorAll("colgroup col");
+    if (cols.length < 3) return; // Need at least checkbox + actions + one data column
+
+    // Read current column widths (from inline styles or rendered)
+    var currentWidths = [];
+    var totalNaturalWidth = 0;
+    cols.forEach(function (col) {
+      var w = parseFloat(col.style.width);
+      var width = Number.isFinite(w) && w > 0 ? w : col.getBoundingClientRect().width || 0;
+      currentWidths.push(width);
+      totalNaturalWidth += width;
+    });
+
+    // If natural width already fills or exceeds available width, do nothing (horizontal scroll handles it)
+    if (totalNaturalWidth >= availableWidth - 1) return;
+
+    // Utility columns (0 and 1) are fixed at 40px each
+    var utilityWidth = currentWidths[0] + currentWidths[1];
+    var extraWidth = availableWidth - totalNaturalWidth;
+
+    // Distribute extra width proportionally among data columns (index 2+)
+    var dataColumnIndices = [];
+    var dataColumnsTotalNatural = 0;
+    for (var i = 2; i < currentWidths.length; i++) {
+      dataColumnIndices.push(i);
+      dataColumnsTotalNatural += currentWidths[i];
+    }
+
+    if (dataColumnsTotalNatural === 0) return;
+
+    var newWidths = currentWidths.slice();
+    dataColumnIndices.forEach(function (idx) {
+      var proportion = currentWidths[idx] / dataColumnsTotalNatural;
+      newWidths[idx] = Math.round(currentWidths[idx] + extraWidth * proportion);
+    });
+
+    // Apply new widths to colgroup
+    newWidths.forEach(function (width, index) {
+      if (cols[index] && Number.isFinite(width) && width > 0) {
+        cols[index].style.width = width + "px";
+      }
+    });
+  }
+
   function syncWrapScrollState(table) {
     if (!table) return;
     var wrap = table.closest(".table-wrap") || table.closest(".table-responsive");
@@ -2024,12 +2081,16 @@ syncPageSizeFromUI();
       try {
         if (table.__gridTableInstance) {
           table.__gridTableInstance.refresh();
+          // After refresh, ensure data columns expand to fill available width if needed
+          expandDataColumnsToFillWidth(table);
         } else {
           clearLegacyGridTableWidthsOnce();
           table.__gridTableInstance = window.GridTable.create(table, {
             columnWidths: getInitialGridColumnWidths(table),
             resizeStorageKey: table.getAttribute("data-resize-key") || "service_request"
           });
+          // After initial creation, ensure data columns expand to fill available width if needed
+          expandDataColumnsToFillWidth(table);
         }
       } catch (err) {
         console.error("[GridTable] Initialization failed:", err);
