@@ -2270,11 +2270,11 @@ syncPageSizeFromUI();
     const pageItems = appState.records;
     const totalCols = Math.max(appState.schemaFields.length + 2, 3);
 
-    if (pageItems.length === 0) {
+if (pageItems.length === 0) {
       tbody.innerHTML = `
       <tr>
         <td colspan="${totalCols}" style="text-align:center; padding: 48px 24px; color:#888; font-size: 14px;">
-          <i class="fa-solid fa-folder-open" style="font-size: 2.2rem; margin-bottom: 12px; display: block; color: #ccc;"></i>
+          <i class="fa fa-folder-open-o" style="font-size: 2.2rem; margin-bottom: 12px; display: block; color: #ccc;"></i>
           No records found
         </td>
       </tr>
@@ -2894,12 +2894,12 @@ async function saveCurrentRecord() {
     showToast("Record saved successfully!", "success");
   }
 
-  function showToast(message, type = "info") {
+function showToast(message, type = "info") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${escapeHtml(message)}</span>`;
+    toast.innerHTML = `<i class="fa fa-check-circle" aria-hidden="true"></i> <span>${escapeHtml(message)}</span>`;
     container.appendChild(toast);
 
     setTimeout(() => {
