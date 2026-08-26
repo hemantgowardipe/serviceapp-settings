@@ -1701,7 +1701,7 @@ body.is-column-resizing * {
 
 .workflow-iframe-container iframe {
   position: relative;
-  top: -80px;
+  top: -87px;
   left: 0;
   width: 100%;
   height: calc(100vh - 240px);
