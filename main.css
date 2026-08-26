@@ -277,16 +277,12 @@ aside.qaf-navdock {
   gap: 8px;
 }
 
-/* Selection Actions Toolbar */
+/* Selection Actions Toolbar - matches SubCategory reference */
 .selection-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0 var(--space-3);
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  margin-right: var(--space-2);
+  margin-right: auto;
 }
 
 .selection-count {
@@ -339,6 +335,60 @@ aside.qaf-navdock {
 
 .qaf-btn--icon .fa {
   font-size: 14px;
+}
+
+/* Selection toolbar icon buttons - matches SubCategory .subcategory-icon-btn */
+.selection-icon-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: #000000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+.selection-icon-btn:hover,
+.selection-icon-btn:focus,
+.selection-icon-btn:active,
+.selection-icon-btn:focus-visible {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+.selection-icon-btn:hover .fa,
+.selection-icon-btn:focus .fa,
+.selection-icon-btn:active .fa,
+.selection-icon-btn:focus-visible .fa {
+  color: #ffffff !important;
+}
+
+.selection-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selection-icon-btn .fa {
+  font-size: 14px;
+  line-height: 1;
+  color: #ffffff !important;
+}
+
+/* Selection Toolbar Positioning - directly above table */
+.repository-selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 32px;
+  margin: var(--space-4) 0;
+  padding: var(--space-2) 0;
+  flex-wrap: wrap;
 }
 
 /* CS_SETTING dynamic button theme */

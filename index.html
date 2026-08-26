@@ -40,16 +40,6 @@
             placeholder="" oninput="handleSearch(this.value)">
         </div>
         <div class="toolbar-actions">
-          <!-- Selection Actions Toolbar (hidden when no rows selected) -->
-          <div class="selection-actions" id="selectionActions" hidden>
-            <span class="selection-count" id="selectionCount">0 selected</span>
-            <button class="action-btn btn-outline qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--secondary" id="bulkEditBtn" disabled>
-              <i class="fa fa-pencil" aria-hidden="true"></i> Edit
-            </button>
-            <button class="action-btn btn-outline qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--secondary" id="bulkDeleteBtn" disabled>
-              <i class="fa fa-trash-o" aria-hidden="true"></i> Delete
-            </button>
-          </div>
           <button class="action-btn btn-grey qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary" id="btnPlusRecord" onclick="openNewRecordDrawer()">+ Record</button>
           <button class="action-btn btn-outline qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--secondary qaf-cs-theme-btn--icon qaf-btn--square" id="btnExportRepository" onclick="exportRepositoryData()"
             title="Export Repository" aria-label="Export Repository">
@@ -57,6 +47,16 @@
           </button>
         </div>
       </header>
+
+      <!-- Selection Toolbar: DIRECTLY ABOVE TABLE -->
+      <div class="repository-selection-toolbar" id="selectionActions" hidden>
+        <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkEditBtn" aria-label="Edit selected" title="Edit" disabled>
+          <i class="fa fa-pencil" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkDeleteBtn" aria-label="Delete selected" title="Delete" disabled>
+          <i class="fa fa-trash-o" aria-hidden="true"></i>
+        </button>
+      </div>
 
       <!-- Data Table Card -->
       <section class="grid-card subcategory-tab-panel panel card table-panel" aria-label="Service Request records">
