@@ -271,10 +271,134 @@ aside.qaf-navdock {
   color: var(--color-text-muted);
 }
 
+/* ============================================================
+ * REFERENCE SEARCH BAR (qaf-search component)
+ * Adapted from helpdesk-my-ticket.css reference
+ * ============================================================ */
+
+/* Search wrapper as 30px toolbar control */
+.toolbar-search.qaf-search {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 200px;
+  min-width: 0;
+  max-width: 392px;
+  box-sizing: border-box;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  margin-top: 0;
+  margin-bottom: 0;
+  align-self: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  padding: 0 var(--space-3);
+  cursor: text;
+}
+
+
+/* Search icon */
+.qaf-search__icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  pointer-events: none;
+  margin-right: var(--space-2);
+  font-family: FontAwesome !important;
+}
+
+/* Search field - fills wrapper content area */
+.qaf-search__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  outline: none;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: var(--font-family-base);
+}
+
+.qaf-search__field:focus {
+  outline: none;
+}
+
+.qaf-search__field::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Clear button */
+.qaf-search__clear {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: var(--space-1);
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.qaf-search__clear:hover {
+  background: var(--color-bg-muted);
+  color: var(--color-text-primary);
+}
+
+.qaf-search__clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.qaf-search__clear[hidden] {
+  display: none !important;
+}
+
 .toolbar-actions {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  width: 100%;
+}
+
+.toolbar-main-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+/* Selection actions inside toolbar - replaces repository-selection-toolbar */
+.toolbar-selection-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbar-selection-actions[hidden] {
+  display: none !important;
 }
 
 /* Selection Actions Toolbar - matches SubCategory reference */
@@ -376,19 +500,6 @@ aside.qaf-navdock {
   font-size: 14px;
   line-height: 1;
   color: #ffffff !important;
-}
-
-/* Selection Toolbar Positioning - directly above table */
-.repository-selection-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 32px;
-  margin: var(--space-4) 0;
-  padding: var(--space-2) 0;
-  flex-wrap: wrap;
 }
 
 /* CS_SETTING dynamic button theme */

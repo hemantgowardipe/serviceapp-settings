@@ -34,29 +34,41 @@
     <div id="repositoryView" class="tab-view active">
       <!-- Toolbar Actions - matches Sub Category reference -->
 <header class="subcategory-tabs-header" aria-label="Service Request actions">
-        <div class="toolbar-search">
-          <i class="fa fa-search search-icon" aria-hidden="true"></i>
-          <input type="text" class="toolbar-search-input" id="toolbarSearchInput" aria-label="Search records"
-            placeholder="" oninput="handleSearch(this.value)">
-        </div>
         <div class="toolbar-actions">
-          <button class="action-btn btn-grey qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary" id="btnPlusRecord" onclick="openNewRecordDrawer()">+ Record</button>
-          <button class="action-btn btn-outline qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--secondary qaf-cs-theme-btn--icon qaf-btn--square" id="btnExportRepository" onclick="exportRepositoryData()"
-            title="Export Repository" aria-label="Export Repository">
-            <i class="fa fa-download" aria-hidden="true"></i>
-          </button>
+          <div class="toolbar-selection-actions" id="selectionActions" hidden>
+            <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkEditBtn" aria-label="Edit selected" title="Edit" disabled>
+              <i class="fa fa-pencil" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkDeleteBtn" aria-label="Delete selected" title="Delete" disabled>
+              <i class="fa fa-trash-o" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="toolbar-main-actions">
+            <label class="toolbar-search qaf-search" for="toolbarSearchInput">
+              <i class="fa fa-search qaf-search__icon" aria-hidden="true"></i>
+              <input
+                type="text"
+                id="toolbarSearchInput"
+                class="qaf-search__field"
+                placeholder=""
+                autocomplete="off"
+                aria-label="Search records" />
+              <button
+                type="button"
+                id="toolbarSearchClear"
+                class="qaf-search__clear"
+                hidden
+                aria-label="Clear search"
+                title="Clear search">&times;</button>
+            </label>
+            <button class="action-btn btn-grey qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary" id="btnPlusRecord" onclick="openNewRecordDrawer()">+ Record</button>
+            <button class="action-btn btn-outline qaf-btn qaf-cs-theme-btn qaf-cs-theme-btn--secondary qaf-cs-theme-btn--icon qaf-btn--square" id="btnExportRepository" onclick="exportRepositoryData()"
+              title="Export Repository" aria-label="Export Repository">
+              <i class="fa fa-download" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
       </header>
-
-      <!-- Selection Toolbar: DIRECTLY ABOVE TABLE -->
-      <div class="repository-selection-toolbar" id="selectionActions" hidden>
-        <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkEditBtn" aria-label="Edit selected" title="Edit" disabled>
-          <i class="fa fa-pencil" aria-hidden="true"></i>
-        </button>
-        <button type="button" class="selection-icon-btn qaf-cs-theme-btn qaf-cs-theme-btn--primary qaf-cs-theme-btn--icon qaf-btn qaf-btn--square" id="bulkDeleteBtn" aria-label="Delete selected" title="Delete" disabled>
-          <i class="fa fa-trash-o" aria-hidden="true"></i>
-        </button>
-      </div>
 
       <!-- Data Table Card -->
       <section class="grid-card subcategory-tab-panel panel card table-panel" aria-label="Service Request records">

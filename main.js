@@ -515,6 +515,7 @@ if (!objectName) {
       const tbody = await waitForRepositoryDOM(5000);
       ensureSchemaFieldsFromRecords();
       applyFiltersAndRender();
+      initSearch();
       return;
     }
 
@@ -611,13 +612,16 @@ if (!objectName) {
           return;
         }
 
-        console.log("[Repository Activation] Rendering repository");
+console.log("[Repository Activation] Rendering repository");
         ensureSchemaFieldsFromRecords();
         applyFiltersAndRender();
         const rowCount = document.getElementById("tableBody")?.children.length || 0;
         console.log(`[Repository DOM] Rendered rows: ${rowCount}`);
         console.log(`[Repository Activation] Rendered rows=${rowCount}`);
         console.log("[Repository Activation] END");
+
+        // Initialize search binding after table is rendered
+        initSearch();
 
 // Mark activation as successfully completed ONLY AFTER RNSP succeeds & table renders
         lastActivatedRepositoryKey = activationKey;
@@ -1038,7 +1042,7 @@ function getCurrentUserName() {
 
     const objectName = appState.objectName;
 
-    if (!objectName) {
+if (!objectName) {
       // No ObjectName in URL â€” show clear error state, do NOT fall back to any hardcoded repo
       console.error("[Serviceapp_Report] No ObjectName provided in URL. Aborting data fetch.");
       appState.records = [];
@@ -1048,6 +1052,7 @@ function getCurrentUserName() {
       _loadedObjectName = null;
       ensureSchemaFieldsFromRecords();
       applyFiltersAndRender();
+      initSearch();
       return;
     }
 
@@ -1275,13 +1280,14 @@ function switchTab(tabName, event) {
 
     const objectName = appState.objectName;
 
-    if (!objectName) {
+if (!objectName) {
       console.error("[Serviceapp_Report] ALWAYS_FETCH_GET_RECORDS_API called but objectName is missing.");
       appState.records = [];
       appState.filteredRecords = [];
       _loadedObjectName = null;
       ensureSchemaFieldsFromRecords();
       applyFiltersAndRender();
+      initSearch();
       return;
     }
 
@@ -1314,11 +1320,12 @@ function switchTab(tabName, event) {
       _loadedObjectName = null;
     }
 
-    ensureSchemaFieldsFromRecords();
+ensureSchemaFieldsFromRecords();
     console.log("[Serviceapp_Report] appState.records:", appState.records.length);
     console.log("[Serviceapp_Report] schemaFields:", appState.schemaFields.length);
     console.log("[Serviceapp_Report] tableBody exists:", !!document.getElementById("tableBody"));
     applyFiltersAndRender();
+    initSearch();
   }
 
   function cleanGuidValue(val) {
@@ -2090,8 +2097,8 @@ let html = `<tr>`;
   }
 
 function applyFiltersAndRender() {
-    // For backend pagination, filtering/sorting is done on the server.
-    // Just render the current page records directly.
+    // Apply client-side search filter to already-loaded records
+    updateFilteredRecords();
     renderTable();
   }
 
@@ -2193,8 +2200,8 @@ tbody.innerHTML = `
       return;
     }
 
-    // Use all records (no pagination)
-    const pageItems = appState.records;
+// Use filtered records (search applied client-side)
+    const pageItems = appState.filteredRecords;
     const totalCols = Math.max(appState.schemaFields.length + 2, 3);
 
 if (pageItems.length === 0) {
@@ -2274,7 +2281,6 @@ pageItems.forEach(row => {
         });
 
 tr.innerHTML = cellsHtml;
-        tr.addEventListener("click", () => openDrawer(row));
         tbody.appendChild(tr);
       });
     }
@@ -2584,13 +2590,91 @@ if (table) {
       .replace(/'/g, "&#039;");
   }
 
-  let searchDebounceTimer = null;
-  function handleSearch(query) {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(async () => {
-      appState.searchQuery = query.trim();
-      await ALWAYS_FETCH_GET_RECORDS_API();
-    }, 300);
+  // ============================================================
+  // REFERENCE SEARCH BEHAVIOR (adapted from helpdesk-my-ticket.js)
+  // Client-side filtering on already-loaded records
+  // ============================================================
+
+  function normalizeKey(str) {
+    return (str || "").toLowerCase().trim();
+  }
+
+  function lookupToText(val) {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "object") return val.label || val.name || val.value || JSON.stringify(val);
+    return String(val);
+  }
+
+  function applySearchFilter(rows, searchTerm) {
+    const term = normalizeKey(searchTerm);
+    if (!term) return rows;
+
+    const searchFields = appState.schemaFields.map(f => f.internalName);
+    if (searchFields.length === 0) return rows;
+
+    return rows.filter(function (row) {
+      return searchFields.some(function (key) {
+        const val = row[key];
+        return normalizeKey(lookupToText(val)).includes(term);
+      });
+    });
+  }
+
+  function updateFilteredRecords() {
+    appState.filteredRecords = applySearchFilter(appState.records, appState.searchQuery);
+  }
+
+  function onSearchEnter(value) {
+    appState.searchQuery = normalizeKey(value);
+    updateFilteredRecords();
+    renderTable();
+  }
+
+  function onSearchClear() {
+    appState.searchQuery = "";
+    updateFilteredRecords();
+    renderTable();
+    const searchInput = document.getElementById("toolbarSearchInput");
+    if (searchInput) searchInput.focus();
+  }
+
+  function bindSearchClear() {
+    const input = document.getElementById("toolbarSearchInput");
+    const clearBtn = document.getElementById("toolbarSearchClear");
+    if (!input || !clearBtn) return;
+
+    // Use shared QafLibrary helper if available
+    if (window.QafLibrary && typeof window.QafLibrary.bindSearchClear === "function") {
+      window.QafLibrary.bindSearchClear(input, clearBtn, {
+        onEnter: onSearchEnter,
+        onClear: onSearchClear
+      });
+      return;
+    }
+
+    // Fallback implementation matching reference behavior
+    function updateClearVisibility() {
+      clearBtn.hidden = !input.value;
+    }
+
+    input.addEventListener("input", updateClearVisibility);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        onSearchEnter(input.value);
+      }
+    });
+    clearBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      input.value = "";
+      updateClearVisibility();
+      onSearchClear();
+    });
+    updateClearVisibility();
+  }
+
+  // Initialize search binding when DOM is ready
+  function initSearch() {
+    bindSearchClear();
   }
 
 
@@ -3150,14 +3234,13 @@ function showToast(message, type = "info") {
     showToast("Repository exported successfully!", "success");
   }
 
-  // Expose global functions to window for HTML onclick attributes and QuickAppFlow lifecycle
+// Expose global functions to window for HTML onclick attributes and QuickAppFlow lifecycle
   window.getURLParameters = getURLParameters;
   window.refreshParamsFromURL = refreshParamsFromURL;
   window.activateRepository = activateRepository;
   window.waitForRepositoryDOM = waitForRepositoryDOM;
   window.handleNavigationChange = handleNavigationChange;
   window.switchTab = switchTab;
-  window.handleSearch = handleSearch;
   window.openNewRecordDrawer = openNewRecordDrawer;
   window.closeDrawer = closeDrawer;
   window.saveCurrentRecord = saveCurrentRecord;
