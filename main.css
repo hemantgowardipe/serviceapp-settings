@@ -1195,112 +1195,6 @@ body.is-column-resizing * {
   font-family: FontAwesome !important;
 }
 
-/* Pagination Footer - matches Sub Category reference */
-.table-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: var(--space-3) var(--space-5);
-  background-color: var(--color-bg-surface);
-  border-top: 1px solid var(--color-border-default);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  font-family: var(--font-family-base);
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-.page-size-selector {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.page-size-label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  white-space: nowrap;
-}
-
-.page-size-dropdown {
-  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  outline: none;
-  font-family: var(--font-family-base);
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2364748b' d='M0 0h10L5 6z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right var(--space-2) center;
-  background-size: 10px 6px;
-}
-
-.page-size-dropdown:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-soft);
-}
-
-.pagination-range {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: 0 var(--space-4);
-  white-space: nowrap;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.page-nav-btn {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  min-width: 30px;
-  height: 30px;
-  transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
-}
-
-.page-nav-btn:hover:not(:disabled) {
-  background: var(--color-bg-subtle);
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
-}
-
-.page-nav-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.page-nav-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-nav-btn .fa {
-  font-size: var(--font-size-base);
-  font-family: FontAwesome !important;
-}
 
 /* Drawer / Side Panel - matches Sub Category reference */
 .drawer-backdrop {
@@ -1917,27 +1811,6 @@ body.is-column-resizing * {
     min-width: 100px;
   }
 
-  /* Pagination footer: keep as single row */
-  .table-footer {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .footer-right {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    gap: var(--space-2);
-  }
-
-  .page-size-label {
-    display: none;
-  }
-
-  .pagination-range {
-    margin: 0 var(--space-2);
-  }
 
   /* Drawer: full width on mobile */
   .drawer-panel {
@@ -2019,18 +1892,6 @@ body.is-column-resizing * {
     padding: var(--space-2) var(--space-2);
   }
 
-  /* Pagination: keep as single row */
-  .footer-right {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    gap: var(--space-1);
-  }
-
-  .page-nav-btn {
-    min-width: 28px;
-    height: 28px;
-    padding: 0 var(--space-1);
-  }
 }
 
 /* ============================================================

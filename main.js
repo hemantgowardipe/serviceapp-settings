@@ -143,12 +143,8 @@ function isRepositoryPageContext() {
     wfId: params.wfId || null,              // for workflow iframe tab only
     objectId: null,                         // resolved from WfId via WFConfigByID API
     schemaFields: [],
-    records: [],           // Current page records only (not full dataset)
-    filteredRecords: [],   // Same as records for backend pagination
-    currentPage: 1,
-    pageSize: 10,
-    totalRecordCount: 0,   // May not be available with backend pagination
-    hasMore: false,        // Backend pagination flag
+    records: [],           // All records (no pagination)
+    filteredRecords: [],   // Same as records
     searchQuery: "",
     sortColumn: "",
     sortDirection: "none",
@@ -160,16 +156,6 @@ function isRepositoryPageContext() {
   var appTotalRecordCount = 0;
   let _loadedObjectName = null;
   const GRIDTABLE_WIDTHS_MIGRATION_KEY = "service_request:gridtable-widths-v2";
-
-  function syncPageSizeFromUI() {
-    const sizeSelect = document.getElementById("pageSizeSelect");
-    if (sizeSelect && sizeSelect.value) {
-      const parsed = parseInt(sizeSelect.value, 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        appState.pageSize = parsed;
-      }
-    }
-  }
 
   function formatDisplayName(name) {
     if (!name) return "";
@@ -497,13 +483,10 @@ async function activateRepository(generation, source) {
     const renderedRowCount = tableBody ? tableBody.children.length : 0;
     const isRepositoryRenderedInCurrentShell = (lastActivatedPageShellId === currentPageShellId && renderedRowCount > 0);
 
-// Always reset pagination and search state on repository activation
-    appState.currentPage = 1;
-    appState.pageSize = parseInt(document.getElementById("pageSizeSelect")?.value || "10", 10);
+// Always reset search state on repository activation
     appState.searchQuery = "";
     appState.sortColumn = "";
     appState.sortDirection = "none";
-    appState.hasMore = false;
     appState.isLoading = false;
     appState.selectedKeys = {};  // Clear selection when repository changes
     const searchInput = document.getElementById("toolbarSearchInput");
@@ -522,12 +505,11 @@ async function activateRepository(generation, source) {
     if (repoLink) repoLink.classList.add("active");
     if (wfLink) wfLink.classList.remove("active");
 
-    if (!objectName) {
+if (!objectName) {
       console.error("[Repository Activation] No ObjectName provided in URL.");
       appState.records = [];
       appState.filteredRecords = [];
       appState.schemaFields = [];
-      appState.totalRecordCount = 0;
       lastActivatedRepositoryKey = null;
       lastActivatedPageShellId = null;
       const tbody = await waitForRepositoryDOM(5000);
@@ -1269,47 +1251,6 @@ function switchTab(tabName, event) {
   }
 
 /**
-   * Fetch a single page of repository records using library.js backend pagination.
-   * Uses QafLibrary.fetchRepositoryPage which sends currentPage, pageSize, filterCondition, sortBy to backend.
-   * Returns { rows, page, pageSize, hasMore, raw }.
-   */
-  async function fetchRepositoryPageData() {
-    const objectName = appState.objectName;
-    if (!objectName) {
-      console.error("[fetchRepositoryPageData] No objectName available");
-      return { rows: [], page: 1, pageSize: appState.pageSize, hasMore: false, raw: null };
-    }
-
-    // Build filter condition from search query
-    const filterCondition = buildWhereClause(appState.searchQuery);
-    
-    // Build sort parameters
-    const sortBy = appState.sortColumn || "";
-    const isAscending = appState.sortDirection === "ascending";
-
-    console.log(`[Pagination] Fetching page ${appState.currentPage}, size ${appState.pageSize}, filter: ${filterCondition}, sort: ${sortBy} ${isAscending ? 'asc' : 'desc'}`);
-
-    try {
-      // Use library.js pagination function
-      const result = await window.QafLibrary.fetchRepositoryPage({
-        objectName: objectName,
-        currentPage: appState.currentPage,
-        pageSize: appState.pageSize,
-        filterCondition: filterCondition,
-        sortBy: sortBy,
-        isAscending: isAscending
-      });
-
-      console.log(`[Pagination] Received ${result.rows?.length || 0} records, hasMore: ${result.hasMore}`);
-      return result;
-    } catch (err) {
-      console.error("[Pagination] Fetch failed:", err);
-      showToast("Failed to load repository data", "error");
-      return { rows: [], page: appState.currentPage, pageSize: appState.pageSize, hasMore: false, raw: null };
-    }
-  }
-
-  /**
    * Show a loading skeleton inside the table body while fetching.
    */
   function showLoadingState() {
@@ -1331,7 +1272,6 @@ function switchTab(tabName, event) {
    */
   async function ALWAYS_FETCH_GET_RECORDS_API() {
     refreshParamsFromURL();
-    syncPageSizeFromUI();
 
     const objectName = appState.objectName;
 
@@ -1339,10 +1279,6 @@ function switchTab(tabName, event) {
       console.error("[Serviceapp_Report] ALWAYS_FETCH_GET_RECORDS_API called but objectName is missing.");
       appState.records = [];
       appState.filteredRecords = [];
-      appState.totalRecordCount = 0;
-      appState.hasMore = false;
-      window.appTotalRecordCount = 0;
-      appTotalRecordCount = 0;
       _loadedObjectName = null;
       ensureSchemaFieldsFromRecords();
       applyFiltersAndRender();
@@ -1369,23 +1305,14 @@ function switchTab(tabName, event) {
       console.log(`[Serviceapp_Report] Received ${data.length} record(s) via RNSP.`);
       appState.records = data;
       appState.filteredRecords = data;
-      appState.totalRecordCount = data.length;
-      appState.hasMore = false; // RNSP returns full dataset; pagination handled client-side if needed
       _loadedObjectName = objectName;
     } else {
       console.warn(`[Serviceapp_Report] No records returned via RNSP for ObjectName='${objectName}'.`);
-      if (appState.currentPage === 1) {
-        showToast(`No records found for repository: ${objectName}`, "info");
-      }
+      showToast(`No records found for repository: ${objectName}`, "info");
       appState.records = [];
       appState.filteredRecords = [];
-      appState.totalRecordCount = 0;
-      appState.hasMore = false;
       _loadedObjectName = null;
     }
-
-    window.appTotalRecordCount = appState.totalRecordCount;
-    appTotalRecordCount = appState.totalRecordCount;
 
     ensureSchemaFieldsFromRecords();
     console.log("[Serviceapp_Report] appState.records:", appState.records.length);
@@ -2254,7 +2181,7 @@ function renderTable() {
         showLoadingState();
         return;
       }
-      tbody.innerHTML = `
+tbody.innerHTML = `
       <tr>
         <td colspan="100%" style="text-align:center; padding: 48px 24px; color:#c0392b; font-size: 15px;">
           <i class="fa fa-exclamation-triangle" style="font-size: 2.5rem; margin-bottom: 12px; display: block;"></i>
@@ -2263,12 +2190,10 @@ function renderTable() {
         </td>
       </tr>
     `;
-      updatePaginationControls();
       return;
     }
 
-syncPageSizeFromUI();
-    // For backend pagination, appState.records already contains only the current page's records
+    // Use all records (no pagination)
     const pageItems = appState.records;
     const totalCols = Math.max(appState.schemaFields.length + 2, 3);
 
@@ -2281,7 +2206,6 @@ if (pageItems.length === 0) {
         </td>
       </tr>
     `;
-      updatePaginationControls();
     } else {
 pageItems.forEach(row => {
         const tr = document.createElement("tr");
@@ -2349,12 +2273,10 @@ pageItems.forEach(row => {
           cellsHtml += `<td>${cellHtml}</td>`;
         });
 
-        tr.innerHTML = cellsHtml;
+tr.innerHTML = cellsHtml;
         tr.addEventListener("click", () => openDrawer(row));
         tbody.appendChild(tr);
       });
-
-      updatePaginationControls();
     }
 
     // The company GridTable is initialized once and refreshed after tbody renders.
@@ -2662,60 +2584,11 @@ if (table) {
       .replace(/'/g, "&#039;");
   }
 
-function updatePaginationControls() {
-    syncPageSizeFromUI();
-    const totalItems = appState.totalRecordCount || 0;
-    const hasMore = appState.hasMore;
-
-    const startItem = totalItems === 0 ? 0 : (appState.currentPage - 1) * appState.pageSize + 1;
-    const endItem = startItem + appState.records.length - 1;
-
-    const indicator = document.getElementById("pageIndicator");
-    if (indicator) {
-      if (totalItems > 0) {
-        indicator.textContent = `${startItem} - ${endItem} of ${totalItems}`;
-      } else if (appState.records.length > 0) {
-        indicator.textContent = `${startItem} - ${endItem}`;
-      } else {
-        indicator.textContent = "0 of 0";
-      }
-    }
-
-    const prevBtn = document.getElementById("prevPageBtn");
-    if (prevBtn) prevBtn.disabled = appState.currentPage <= 1;
-
-    const nextBtn = document.getElementById("nextPageBtn");
-    if (nextBtn) nextBtn.disabled = !hasMore || appState.records.length < appState.pageSize;
-  }
-
-  async function prevPage() {
-    if (appState.currentPage > 1 && !appState.isLoading) {
-      appState.currentPage--;
-      await ALWAYS_FETCH_GET_RECORDS_API();
-    }
-  }
-
-  async function nextPage() {
-    if (appState.hasMore && !appState.isLoading) {
-      appState.currentPage++;
-      await ALWAYS_FETCH_GET_RECORDS_API();
-    }
-  }
-
-  async function changePageSize(newSize) {
-    if (appState.isLoading) return;
-    appState.pageSize = parseInt(newSize, 10) || 10;
-    appState.currentPage = 1;
-    await ALWAYS_FETCH_GET_RECORDS_API();
-  }
-
   let searchDebounceTimer = null;
   function handleSearch(query) {
     clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(async () => {
       appState.searchQuery = query.trim();
-      appState.currentPage = 1;
-      // Trigger backend fetch with new search filter
       await ALWAYS_FETCH_GET_RECORDS_API();
     }, 300);
   }
@@ -3293,10 +3166,7 @@ function showToast(message, type = "info") {
   window.viewRecordInNewWindow = viewRecordInNewWindow;
   window.editRecord = editRecord;
   window.toggleRowMenu = toggleRowMenu;
-  window.exportRepositoryData = exportRepositoryData;
-  window.changePageSize = changePageSize;
-  window.prevPage = prevPage;
-  window.nextPage = nextPage;
+window.exportRepositoryData = exportRepositoryData;
 window.closeImportBulkModal = closeImportBulkModal;
   window.downloadImportTemplate = downloadImportTemplate;
   window.handleImportFile = handleImportFile;
