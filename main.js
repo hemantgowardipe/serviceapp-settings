@@ -153,7 +153,8 @@ function isRepositoryPageContext() {
     sortColumn: "",
     sortDirection: "none",
     activeRecord: null,
-    isLoading: false       // Prevent duplicate requests
+    isLoading: false,       // Prevent duplicate requests
+    selectedKeys: {}        // Selected row keys (RecordID) for row selection
   };
 
   var appTotalRecordCount = 0;
@@ -504,6 +505,7 @@ async function activateRepository(generation, source) {
     appState.sortDirection = "none";
     appState.hasMore = false;
     appState.isLoading = false;
+    appState.selectedKeys = {};  // Clear selection when repository changes
     const searchInput = document.getElementById("toolbarSearchInput");
     if (searchInput) searchInput.value = "";
 
@@ -2144,8 +2146,8 @@ function switchTab(tabName, event) {
     }
     table.dataset.gridTableSchemaKey = schemaKey;
 
-    let html = `<tr>`;
-    html += `<th class="row-checkbox-head no-sort no-resize" scope="col"><label class="sr-only" for="selectAllCheckbox">Select all</label><input type="checkbox" id="selectAllCheckbox" class="row-checkbox-input" aria-label="Select all rows" onchange="toggleSelectAll(this)"></th>`;
+let html = `<tr>`;
+    html += `<th class="row-checkbox-head no-sort no-resize" scope="col"><label class="sr-only" for="selectAllCheckbox">Select all</label><input type="checkbox" id="selectAllCheckbox" class="row-checkbox-input" aria-label="Select all rows"></th>`;
     html += `<th class="row-actions-head no-sort no-resize" scope="col" aria-label="Actions"></th>`;
 
     // Render ONLY the actual fields returned by Serviceapp_Report â€” no manufactured columns
@@ -2281,15 +2283,17 @@ if (pageItems.length === 0) {
     `;
       updatePaginationControls();
     } else {
-      pageItems.forEach(row => {
+pageItems.forEach(row => {
         const tr = document.createElement("tr");
         tr.dataset.recordId = row.RecordID;
+        const recordId = row.RecordID;
+        const isChecked = !!appState.selectedKeys[recordId];
 
         let cellsHtml = `
-        <td class="row-checkbox" onclick="event.stopPropagation();">
-          <input type="checkbox" class="row-checkbox-input row-checkbox" aria-label="Select record" value="${row.RecordID}">
+        <td class="row-checkbox">
+          <input type="checkbox" class="row-checkbox-input" data-row-key="${escapeHtml(recordId)}" aria-label="Select row"${isChecked ? " checked" : ""}>
         </td>
-      ` + buildRowActionsCell(row.RecordID);
+      ` + buildRowActionsCell(recordId);
 
         // Render only actual repository fields returned by Serviceapp_Report
         appState.schemaFields.forEach(f => {
@@ -2376,11 +2380,142 @@ if (pageItems.length === 0) {
       }
     }
 
-    if (table) {
+if (table) {
       syncWrapScrollState(table);
     }
 
+    // Bind selection events (idempotent)
+    bindSelectionEvents();
+
     console.log("[Repository Render] rendered rows:", document.getElementById("tableBody")?.children.length);
+
+    // Sync selection state after render
+    syncSelectAllState();
+  }
+
+  // ============================================
+  // Row Selection Functions
+  // ============================================
+
+  function getSelectedRows() {
+    const tbody = document.getElementById("tableBody");
+    if (!tbody) return [];
+    const checks = Array.from(tbody.querySelectorAll(".row-checkbox-input:checked"));
+    return checks
+      .map(cb => {
+        const key = cb.getAttribute("data-row-key");
+        return appState.records.find(r => r.RecordID === key);
+      })
+      .filter(Boolean);
+  }
+
+  function syncSelectAllState() {
+    const tbody = document.getElementById("tableBody");
+    const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+    if (!tbody || !selectAllCheckbox) return;
+    const rowChecks = Array.from(tbody.querySelectorAll(".row-checkbox-input"));
+    const checkedCount = rowChecks.filter(cb => cb.checked).length;
+    selectAllCheckbox.checked = rowChecks.length > 0 && checkedCount === rowChecks.length;
+    selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < rowChecks.length;
+    updateSelectionToolbar();
+  }
+
+  function updateSelectionToolbar() {
+    const selected = getSelectedRows();
+    const count = selected.length;
+    const selectionActions = document.getElementById("selectionActions");
+    const bulkEditBtn = document.getElementById("bulkEditBtn");
+    const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+    const selectionCount = document.getElementById("selectionCount");
+
+    if (selectionActions) {
+      if (count > 0) {
+        selectionActions.removeAttribute("hidden");
+      } else {
+        selectionActions.setAttribute("hidden", "");
+      }
+    }
+    if (bulkEditBtn) {
+      bulkEditBtn.disabled = count !== 1;
+    }
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.disabled = count === 0;
+    }
+    if (selectionCount) {
+      selectionCount.textContent = `${count} selected`;
+    }
+  }
+
+  function handleSelectAllChange() {
+    const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+    const tbody = document.getElementById("tableBody");
+    if (!tbody || !selectAllCheckbox) return;
+
+    const rowChecks = Array.from(tbody.querySelectorAll(".row-checkbox-input"));
+    const isChecked = selectAllCheckbox.checked;
+
+    rowChecks.forEach(cb => {
+      cb.checked = isChecked;
+      const key = cb.getAttribute("data-row-key");
+      if (isChecked) {
+        appState.selectedKeys[key] = true;
+      } else {
+        delete appState.selectedKeys[key];
+      }
+    });
+    updateSelectionToolbar();
+  }
+
+  function handleRowCheckboxChange(cb) {
+    const key = cb.getAttribute("data-row-key");
+    if (cb.checked) {
+      appState.selectedKeys[key] = true;
+    } else {
+      delete appState.selectedKeys[key];
+    }
+    syncSelectAllState();
+  }
+
+  function handleBulkEdit() {
+    const selected = getSelectedRows();
+    if (selected.length !== 1) return;
+    const record = selected[0];
+    editRecord(record.RecordID, null);
+  }
+
+  function handleBulkDelete() {
+    const selected = getSelectedRows();
+    if (selected.length === 0) return;
+    const recordIds = selected.map(r => r.RecordID);
+    recordIds.forEach(recordId => {
+      deleteRecord(recordId, null);
+    });
+  }
+
+  function bindSelectionEvents() {
+    const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+    if (selectAllCheckbox && !selectAllCheckbox.dataset.bound) {
+      selectAllCheckbox.dataset.bound = "true";
+      selectAllCheckbox.addEventListener("change", handleSelectAllChange);
+    }
+    const tbody = document.getElementById("tableBody");
+    if (tbody && !tbody.dataset.selectionBound) {
+      tbody.dataset.selectionBound = "true";
+      tbody.addEventListener("change", (e) => {
+        const cb = e.target.closest(".row-checkbox-input");
+        if (cb) handleRowCheckboxChange(cb);
+      });
+    }
+    const bulkEditBtn = document.getElementById("bulkEditBtn");
+    if (bulkEditBtn && !bulkEditBtn.dataset.bound) {
+      bulkEditBtn.dataset.bound = "true";
+      bulkEditBtn.addEventListener("click", handleBulkEdit);
+    }
+    const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+    if (bulkDeleteBtn && !bulkDeleteBtn.dataset.bound) {
+      bulkDeleteBtn.dataset.bound = "true";
+      bulkDeleteBtn.addEventListener("click", handleBulkDelete);
+    }
   }
 
   function renderDynamicDrawerForm(record) {
@@ -2585,11 +2720,6 @@ function updatePaginationControls() {
     }, 300);
   }
 
-  function toggleSelectAll(checkbox) {
-    document.querySelectorAll(".row-checkbox").forEach(cb => {
-      cb.checked = checkbox.checked;
-    });
-  }
 
   function openDrawer(record) {
     if (!appState.objectName) return;
@@ -3167,8 +3297,7 @@ function showToast(message, type = "info") {
   window.changePageSize = changePageSize;
   window.prevPage = prevPage;
   window.nextPage = nextPage;
-  window.toggleSelectAll = toggleSelectAll;
-  window.closeImportBulkModal = closeImportBulkModal;
+window.closeImportBulkModal = closeImportBulkModal;
   window.downloadImportTemplate = downloadImportTemplate;
   window.handleImportFile = handleImportFile;
 })();
